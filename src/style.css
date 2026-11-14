@@ -1,0 +1,30 @@
+/* Estilo visual (P4 — Pamela).
+   TODO (Pamela): paleta, tipografía y colores por nivel (info, aviso, crítico). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+/* Layout base (J3 — Juan): barra arriba, mapa y alertas abajo. */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.contenido {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  min-height: 0;
+}
+
+.mapa {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #999;
+}

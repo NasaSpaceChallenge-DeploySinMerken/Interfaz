@@ -1,8 +1,8 @@
 # División de tareas — Interfaz
 
-**Repo de la app:** [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map) (el código va ahí; este repo solo guarda la organización de la interfaz)
+**Repo de la app:** [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map). La interfaz se arma primero en este repo y, cuando esté lista, se pasa ahí.
 **Responsables:** Juan y Pamela
-**Stack:** React + Vite · Chart.js
+**Stack:** React + Vite (Chart.js más adelante, para el panel)
 **Base:** [Reunión 1](https://github.com/NasaSpaceChallenge-DeploySinMerken/docs/blob/main/Reunion1_ordenada.md) · [Arquitectura](arquitectura.jpeg)
 
 ## 1. Qué nos toca
@@ -11,8 +11,8 @@ En la [arquitectura](arquitectura.jpeg) del proyecto ([martian-map](https://gith
 
 | Carpeta / archivo | Responsable | Qué es |
 | --- | --- | --- |
-| `src/ui/panel.js` | **Nosotros** | Indicadores con Chart.js (oxígeno, temperatura, salud) |
-| `src/ui/alerts.js` | **Nosotros** | Notificaciones al astronauta |
+| `src/ui/panel.js` | **Nosotros** | Indicadores con Chart.js. **Por ahora no se hace** (ver sección 2) |
+| `src/ui/alerts.js` | **Nosotros** | Alertas de oxígeno, temperatura y salud |
 | `index.html`, `src/style.css` | **Nosotros** | Estructura y estilo de la página |
 | `src/map/` | Otro equipo | Mapa OpenLayers, capas de Mars Trek, proyección |
 | `src/sim/` | Otro equipo | Posición del astronauta, recursos, teclado y joystick |
@@ -22,22 +22,26 @@ Nosotros **no calculamos nada**: leemos el estado que entrega `src/sim/` y lo mo
 
 ## 2. Reparto
 
-### Juan — Página, datos de prueba y alertas
+**Por ahora, oxígeno, temperatura y salud se muestran solo como alertas.** El panel con gráficos de Chart.js (`panel.js`) queda para después, si hay tiempo.
+
+### Juan — Página, datos de prueba y sistema de alertas
 
 | # | Tarea | Detalle |
 | --- | --- | --- |
-| J1 | Proyecto base | En `martian-map` los archivos existen pero están vacíos. Si nadie lo hizo todavía, dejar Vite funcionando (`package.json`, `vite.config.js`, `index.html`, `src/main.js`) y subirlo a `main`, avisando al resto del equipo porque todos dependen de eso. **Va primero, porque Pamela lo necesita para empezar.** |
+| J1 | Proyecto base | ✅ Esqueleto con Vite + React en este repo. Ver [README](README.md). |
 | J2 | Simulación de prueba | `src/mock/simulacionFalsa.js`: genera cada segundo un estado con la forma de la sección 3 (el oxígeno baja, el pulso sube y baja, etc.). Así trabajamos sin esperar a `src/sim/`. |
-| J3 | Layout de la página | Barra superior (tiempo de misión, play/pausa, velocidad), espacio para el mapa y panel lateral. Que se vea bien en pantalla completa, que es como se va a presentar. |
-| J4 | Alertas (`alerts.js`) | Notificaciones con tres niveles (info, aviso, crítico) que aparecen, se apilan y se pueden cerrar. Reglas: oxígeno bajo, el oxígeno no alcanza para volver, pulso alto, temperatura del traje fuera de rango. |
+| J3 | Layout de la página | Barra superior (tiempo de misión, play/pausa, velocidad), espacio para el mapa y zona de alertas. Que se vea bien en pantalla completa, que es como se va a presentar. |
+| J4 | Sistema de alertas (`alerts.js`) | La parte que muestra las alertas: tres niveles (info, aviso, crítico) que aparecen, se apilan y se pueden cerrar. Sin repetir la misma alerta en cada segundo mientras siga activa. Recibe alertas con la forma `{ id, nivel, mensaje }`, sin saber de dónde vienen. |
 
-### Pamela — Panel de indicadores
+### Pamela — Reglas de las alertas y estilo
+
+Cada regla mira el estado de la simulación y devuelve las alertas que correspondan, que el sistema de Juan muestra. Los umbrales son una primera propuesta: ajustarlos con datos reales si se consiguen.
 
 | # | Tarea | Detalle |
 | --- | --- | --- |
-| P1 | Oxígeno | Medidor del porcentaje que queda, minutos que alcanza y gráfico del consumo en el tiempo (Chart.js). Es el indicador más importante: tiene que ser el más visible. |
-| P2 | Temperatura | Exterior y del traje, con un gráfico en vivo. |
-| P3 | Salud | Pulso y saturación de oxígeno, con un gráfico en vivo. |
+| P1 | Oxígeno | Aviso bajo 30 %, crítico bajo 15 %. Crítico también si `minutosRestantes` es menor que `minutosParaVolver` (no alcanza para volver). Es la alerta más importante: tiene que ser la más visible. |
+| P2 | Temperatura | Aviso y crítico si la temperatura del traje sale de rango (por ejemplo, fuera de 18–27 °C y de 10–35 °C). La exterior solo como info. |
+| P3 | Salud | Aviso y crítico por pulso alto (más de 120 y de 150) y por saturación baja (menos de 94 % y de 90 %). |
 | P4 | Estilo visual | Paleta de colores, tipografía y estados (normal, aviso, crítico) en `style.css`. Juan los usa en el layout y en las alertas para que todo se vea igual. |
 
 ### En conjunto
@@ -45,7 +49,7 @@ Nosotros **no calculamos nada**: leemos el estado que entrega `src/sim/` y lo mo
 | Tarea | Cuándo |
 | --- | --- |
 | Confirmar con el equipo de `src/sim/` el formato del estado (sección 3) | Al empezar. |
-| Probar el panel y las alertas con la simulación de prueba | Cuando estén J2 y P1. |
+| Probar las alertas con la simulación de prueba (que la simulación falsa pase por todos los umbrales) | Cuando estén J2, J4 y P1. |
 | Cambiar la simulación de prueba por la real de `src/sim/` | Cuando el equipo de simulación tenga `resources.js` listo. |
 | Prueba completa y demo | Al final, sobre la versión publicada. |
 
@@ -69,7 +73,7 @@ También necesitamos que la simulación avise cada vez que cambia el estado (un 
 ## 4. Forma de trabajo con Git
 
 1. Juan sube el proyecto base a `main` (J1).
-2. En `martian-map`, cada uno trabaja en su rama: `juan/alertas`, `pamela/oxigeno`, etc.
+2. Cada uno trabaja en su rama: `juan/alertas`, `pamela/oxigeno`, etc.
 3. Los cambios entran a `main` por pull request, y el otro le da una mirada rápida.
 4. Antes de abrir un PR: `git pull origin main` para traer lo último y resolver conflictos en la propia rama.
 
