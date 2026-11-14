@@ -22,17 +22,46 @@ Sin configurar nada usa un **backend falso** (`src/api/mock.js`): rutas en líne
 
 ### Con la API del equipo del mapa
 
-Su API vive en el repo `martian-map` (rama `mapa-nacho-marti`, `server/index.js`, contrato en su `docs/API.md`).
+Su API vive en el repo [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map), rama `mapa-nacho-marti`. El código está en `server/index.js` y el contrato en `docs/API.md`. Se necesitan dos terminales.
+
+**Terminal 1: levantar la API**
 
 ```bash
-# en martian-map
+# la primera vez
+git clone https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map.git
+cd martian-map
+git checkout mapa-nacho-marti
 npm install
-npm run api          # http://localhost:3000
 
-# en Interfaz: crear .env.local con
-VITE_API_URL=http://localhost:3000
-# y reiniciar npm run dev
+# cada vez
+npm run api
 ```
+
+Queda en `http://localhost:3000`. Para comprobar que responde:
+
+```bash
+curl http://localhost:3000/api/health
+# {"ok":true,...}
+```
+
+**Terminal 2: la interfaz apuntando a la API**
+
+```bash
+cd Interfaz
+echo "VITE_API_URL=http://localhost:3000" > .env.local
+npm run dev
+```
+
+Abre `http://localhost:5173`, pulsa "Cargar ejemplo" y "Calcular ruta". Si la conexión funciona, el panel muestra "Ruta validada. Esperando el análisis del equipo 3…" y la elevación de la ruta. Con el backend falso, en cambio, aparece la nota "Backend falso".
+
+**Volver al backend falso:** borrar `.env.local` (`rm .env.local`) y reiniciar `npm run dev`.
+
+**Problemas comunes**
+
+- **"No se pudo conectar con el backend":** la API no está corriendo o está en otro puerto. Revisa la terminal 1 y el `curl` de arriba.
+- **Cambié `.env.local` y no pasa nada:** Vite lee ese archivo solo al arrancar, así que hay que detener `npm run dev` (Ctrl+C) y volver a correrlo.
+- **El puerto 5173 está ocupado:** Vite usa el siguiente libre (5174, etc.) y lo indica en la terminal. La API acepta pedidos desde cualquier puerto.
+- **`.env.local` no se sube a git:** es a propósito, porque cada uno apunta a su propia API.
 
 Qué se usa de su API y qué sigue siendo falso (todo se traduce en `src/api/cliente.js`):
 
