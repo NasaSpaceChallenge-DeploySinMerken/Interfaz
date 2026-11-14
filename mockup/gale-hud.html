@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup HUD — Cráter Gale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fondo: #0d0f12;
+    --hud: rgba(13, 15, 18, 0.8);
+    --borde: rgba(255, 255, 255, 0.16);
+    --texto: #ece8e4;
+    --texto-suave: #bcc1c7;
+    --acento: #e0784a;
+    --base: #6cb6ff;
+    --destino: #f2c14e;
+    --critico: #ff6b5e;
+    --aviso: #f2c14e;
+    --info: #8cc4ff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .etiqueta {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--texto-suave);
+  }
+
+  /* ---------- Vista principal: mapa HiRISE que sigue al astronauta ---------- */
+  .vista { position: fixed; inset: 0; overflow: hidden; background: #1d140e; }
+  .teselas {
+    position: absolute; left: 0; top: 0; will-change: transform;
+    /* HiRISE viene en blanco y negro: se colorea solo para el diseño */
+    filter: sepia(1) saturate(2.1) hue-rotate(-14deg) brightness(0.92) contrast(1.05);
+  }
+  .teselas img { position: absolute; width: 256px; height: 256px; user-select: none; -webkit-user-drag: none; }
+  .vista__capa { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .vista::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  }
+  .etiqueta-parada {
+    font: 600 14px Inter, sans-serif;
+    fill: #fff4ec;
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, 0.75);
+    stroke-width: 4px;
+  }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    position: fixed; inset: 0; pointer-events: none; padding: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 360px) 1fr minmax(0, 300px);
+    grid-template-rows: auto 1fr auto;
+    gap: 16px;
+  }
+  .hud > * { pointer-events: auto; }
+  .panel {
+    background: var(--hud); border: 1px solid var(--borde); border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+
+  button {
+    height: 44px; min-width: 44px; padding: 0 14px; border-radius: 8px;
+    border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.06); color: var(--texto);
+    font: 500 14px Inter, sans-serif; cursor: pointer;
+  }
+  button:hover { background: rgba(255, 255, 255, 0.12); }
+  button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+  /* Misión */
+  .mision { grid-column: 1; grid-row: 1; align-self: start; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .mision__titulo { margin: 0; font-family: "Space Grotesk", sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
+  .mision__lugar { margin: 2px 0 0; font-size: 13px; color: var(--texto-suave); }
+  .mision__reloj { font-size: 30px; font-weight: 500; letter-spacing: 0.04em; line-height: 1; }
+  .controles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .velocidades { display: flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
+  .velocidades button { border: 0; border-radius: 0; background: transparent; font-family: "JetBrains Mono", monospace; }
+  .velocidades button[aria-pressed="true"] { background: var(--acento); color: #1a0f0a; font-weight: 600; }
+
+  /* Brújula */
+  .brujula {
+    grid-column: 2; grid-row: 1; justify-self: center; align-self: start;
+    width: min(440px, 100%); padding: 8px 0 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .brujula__ventana {
+    position: relative; width: 100%; height: 30px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  }
+  .brujula__cinta { position: absolute; left: 50%; top: 0; height: 100%; will-change: transform; }
+  .brujula__marca {
+    position: absolute; top: 0; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center;
+    font: 500 13px "JetBrains Mono", monospace; color: var(--texto-suave);
+  }
+  .brujula__marca--cardinal { color: var(--texto); font-weight: 600; font-size: 15px; }
+  .brujula__marca--cardinal.norte { color: var(--acento); }
+  .brujula__marca::before { content: ""; width: 1px; height: 7px; background: currentColor; margin-bottom: 2px; }
+  .brujula__indice { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--texto); }
+  .brujula__grados { font-size: 12px; }
+
+  /* Alertas */
+  .alertas { grid-column: 1; grid-row: 2; align-self: start; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .alerta {
+    display: flex; gap: 12px; align-items: flex-start; padding: 12px 12px 12px 14px; border-radius: 10px;
+    background: var(--hud); border: 1px solid var(--borde);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .alerta--critico { background: rgba(70, 16, 14, 0.9); border: 2px solid var(--critico); }
+  .alerta--aviso { border-color: rgba(242, 193, 78, 0.6); }
+  .alerta--info { border-color: rgba(140, 196, 255, 0.45); }
+  .alerta__cuerpo { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .alerta__nivel { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+  .alerta--critico .alerta__nivel { color: #ff9a90; }
+  .alerta--aviso .alerta__nivel { color: var(--aviso); }
+  .alerta--info .alerta__nivel { color: var(--info); }
+  .alerta__titulo { font-size: 15px; font-weight: 600; }
+  .alerta__detalle { font-size: 13px; color: #d6d2cd; }
+  .alerta button { flex: none; margin: -8px -6px -8px 0; border: 0; background: transparent; padding: 0; }
+
+  /* Minimapa: recorrido completo */
+  .lateral { grid-column: 3; grid-row: 1 / span 2; align-self: start; display: flex; flex-direction: column; gap: 10px; }
+  .minimapa { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .minimapa__marco { position: relative; width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #1d140e; }
+  .minimapa__teselas {
+    position: absolute; left: 0; top: 0; transform-origin: 0 0;
+    filter: sepia(1) saturate(2.1) hue-rotate(-14deg) brightness(0.85);
+  }
+  .minimapa__teselas img { position: absolute; width: 256px; height: 256px; }
+  .minimapa__capa { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .minimapa__norte {
+    position: absolute; top: 6px; right: 8px;
+    font: 600 13px "Space Grotesk", sans-serif; color: var(--texto); text-shadow: 0 1px 3px #000;
+  }
+  .minimapa__pie { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--texto-suave); }
+
+  .objetivo { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .objetivo__nombre { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .objetivo__fila { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--texto-suave); }
+  .objetivo__dato { font-size: 18px; color: var(--texto); }
+
+  /* Abajo */
+  .escala { grid-column: 1; grid-row: 3; align-self: end; justify-self: start; padding: 8px 12px; display: flex; align-items: center; gap: 12px; font-size: 12px; }
+  .escala__barra { height: 6px; background: var(--texto); border-radius: 1px; }
+  .zoom { display: flex; gap: 6px; }
+
+  .proxima { grid-column: 3; grid-row: 3; align-self: end; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .proxima__detalle { margin: 0; font-size: 13px; color: var(--texto-suave); }
+
+  .creditos { grid-column: 2; grid-row: 3; align-self: end; justify-self: center; margin: 0; padding: 6px 10px; font-size: 11px; color: var(--texto-suave); }
+
+  @media (max-width: 860px) {
+    .hud { grid-template-columns: 1fr 160px; grid-template-rows: auto auto 1fr auto; }
+    .mision { grid-column: 1; grid-row: 1; }
+    .lateral { grid-column: 2; grid-row: 1; }
+    .objetivo, .creditos, .proxima { display: none; }
+    .brujula { grid-column: 1 / span 2; grid-row: 2; }
+    .alertas { grid-column: 1 / span 2; grid-row: 3; }
+    .escala { grid-column: 1 / span 2; grid-row: 4; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Vista principal -->
+<div class="vista" aria-hidden="true">
+  <div class="teselas" id="teselas"></div>
+  <svg class="vista__capa">
+    <polyline id="vPendiente" style="fill: none; stroke: #fff4ec; stroke-width: 4; stroke-dasharray: 2 12; stroke-linecap: round; stroke-linejoin: round"></polyline>
+    <polyline id="vRecorrido" style="fill: none; stroke: #fff4ec; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round"></polyline>
+    <g id="vParadas"></g>
+    <g id="vAstronauta">
+      <circle r="30" style="fill: var(--acento); fill-opacity: 0.22"></circle>
+      <path id="vFlecha" d="M0 -16 L11 11 L0 5 L-11 11 Z" style="fill: var(--acento); stroke: #fff4ec; stroke-width: 3; stroke-linejoin: round"></path>
+    </g>
+  </svg>
+</div>
+
+<!-- HUD -->
+<div class="hud">
+
+  <section class="panel mision" aria-label="Misión">
+    <div>
+      <h1 class="mision__titulo">MARTIAN MAP</h1>
+      <p class="mision__lugar">Cráter Gale · Hacia la base del Monte Sharp</p>
+    </div>
+    <div>
+      <div class="etiqueta">Tiempo de misión</div>
+      <div class="mision__reloj mono" id="reloj">00:00:00</div>
+    </div>
+    <div class="controles">
+      <button type="button" id="btnMarcha">Pausar</button>
+      <button type="button" id="btnReiniciar">Reiniciar</button>
+      <div class="velocidades" role="group" aria-label="Velocidad">
+        <button type="button" data-velocidad="1" aria-pressed="false">x1</button>
+        <button type="button" data-velocidad="10" aria-pressed="false">x10</button>
+        <button type="button" data-velocidad="60" aria-pressed="true">x60</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="panel brujula" aria-label="Rumbo">
+    <div class="brujula__ventana"><div class="brujula__cinta" id="cinta"></div></div>
+    <div class="brujula__indice" aria-hidden="true"></div>
+    <span class="brujula__grados mono" id="rumbo">—</span>
+  </div>
+
+  <ul class="alertas" aria-label="Alertas" aria-live="polite">
+    <li class="alerta alerta--critico" role="alert">
+      <div class="alerta__cuerpo">
+        <span class="alerta__nivel">Crítico · Oxígeno</span>
+        <span class="alerta__titulo">El oxígeno no alcanza para volver</span>
+        <span class="alerta__detalle">Quedan 38 min y la vuelta a la base toma 41 min.</span>
+      </div>
+      <button type="button" aria-label="Cerrar alerta: el oxígeno no alcanza para volver"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #f3c9c4; stroke-width: 2; stroke-linecap: round"></path></svg></button>
+    </li>
+    <li class="alerta alerta--aviso">
+      <div class="alerta__cuerpo">
+        <span class="alerta__nivel">Aviso · Salud</span>
+        <span class="alerta__titulo">Pulso alto</span>
+        <span class="alerta__detalle">128 lpm. El límite de aviso es 120.</span>
+      </div>
+      <button type="button" aria-label="Cerrar alerta: pulso alto"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #e2d3ad; stroke-width: 2; stroke-linecap: round"></path></svg></button>
+    </li>
+    <li class="alerta alerta--info">
+      <div class="alerta__cuerpo">
+        <span class="alerta__nivel">Info · Temperatura</span>
+        <span class="alerta__titulo">Exterior: −58 °C</span>
+        <span class="alerta__detalle">El traje está en 22 °C, dentro del rango.</span>
+      </div>
+      <button type="button" aria-label="Cerrar alerta: temperatura exterior"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #b9cde2; stroke-width: 2; stroke-linecap: round"></path></svg></button>
+    </li>
+  </ul>
+
+  <div class="lateral">
+    <section class="panel minimapa" aria-label="Minimapa del recorrido">
+      <div class="minimapa__marco" id="miniMarco">
+        <div class="minimapa__teselas" id="miniTeselas"></div>
+        <svg class="minimapa__capa" role="img" aria-label="Minimapa con el recorrido completo, las paradas y la posición del astronauta">
+          <polyline id="mRuta" style="fill: none; stroke: #fff4ec; stroke-width: 2; stroke-dasharray: 2 4; stroke-linecap: round"></polyline>
+          <polyline id="mRecorrido" style="fill: none; stroke: #fff4ec; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"></polyline>
+          <g id="mParadas"></g>
+          <circle id="mAstronauta" r="6" style="fill: var(--acento); stroke: #fff4ec; stroke-width: 2"></circle>
+        </svg>
+        <span class="minimapa__norte" aria-hidden="true">N ↑</span>
+      </div>
+      <div class="minimapa__pie">
+        <span class="etiqueta">Posición</span>
+        <span class="mono" id="coords">—</span>
+      </div>
+    </section>
+
+    <section class="panel objetivo" aria-label="Destino">
+      <span class="etiqueta">Destino</span>
+      <span class="objetivo__nombre">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1 L13 12 L1 12 Z" style="fill: var(--destino)"></path></svg>
+        Pahrump Hills
+      </span>
+      <div class="objetivo__fila"><span>Distancia restante</span><span class="mono objetivo__dato" id="distancia">—</span></div>
+      <div class="objetivo__fila"><span>Recorrido</span><span class="mono objetivo__dato" id="recorrido">—</span></div>
+    </section>
+  </div>
+
+  <div class="panel escala">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div class="escala__barra" id="escalaBarra"></div>
+      <span class="mono" id="escalaTexto">—</span>
+    </div>
+    <div class="zoom">
+      <button type="button" id="btnAlejar" aria-label="Alejar">−</button>
+      <button type="button" id="btnAcercar" aria-label="Acercar">+</button>
+    </div>
+  </div>
+
+  <p class="panel creditos">
+    Imágenes: HiRISE, NASA/JPL-Caltech/Univ. of Arizona, vía NASA Mars Trek (coloreadas para el diseño). Ruta: recorrido real de Curiosity. Alertas de ejemplo.
+  </p>
+
+  <section class="panel proxima" aria-label="Próxima parada" aria-live="polite">
+    <span class="etiqueta">Próxima parada</span>
+    <span class="objetivo__nombre" id="proxNombre">—</span>
+    <p class="proxima__detalle" id="proxDetalle">—</p>
+    <div class="objetivo__fila"><span>Falta</span><span class="mono objetivo__dato" id="proxDistancia">—</span></div>
+  </section>
+</div>
+
+<script src="datos-gale.js"></script>
+<script>
+// RUTA y PARADAS vienen de datos-gale.js (recorrido real de Curiosity).
+
+// ---------------- Geometría ----------------
+const CAPA = 'curiosity_hirise_mosaic';
+const urlTesela = (z, fila, col) =>
+  `https://trek.nasa.gov/tiles/Mars/EQ/${CAPA}/1.0.0/default/default028mm/${z}/${fila}/${col}.png`;
+const TESELA = 256;
+const RADIO_MARTE = 3389500; // m
+const VEL_CAMINATA = 1.4;    // m/s
+const SVG = 'http://www.w3.org/2000/svg';
+
+const grados = (z) => 180 / 2 ** z;
+const aPixel = ([lon, lat], z) => [((lon + 180) / grados(z)) * TESELA, ((90 - lat) / grados(z)) * TESELA];
+const rad = (g) => (g * Math.PI) / 180;
+const metrosPorPixel = (z) => rad(grados(z) / TESELA) * RADIO_MARTE;
+
+function distancia(a, b) {
+  const dx = rad(b[0] - a[0]) * RADIO_MARTE * Math.cos(rad(a[1]));
+  const dy = rad(b[1] - a[1]) * RADIO_MARTE;
+  return Math.hypot(dx, dy);
+}
+// rumbo en grados desde el norte, en sentido horario
+function rumbo(a, b) {
+  const dx = (b[0] - a[0]) * Math.cos(rad(a[1]));
+  const dy = b[1] - a[1];
+  return ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+}
+
+const acumulado = [0];
+for (let i = 1; i < RUTA.length; i++) acumulado.push(acumulado[i - 1] + distancia(RUTA[i - 1], RUTA[i]));
+const TOTAL = acumulado[acumulado.length - 1];
+
+// cada parada se ubica en el punto de la ruta más cercano
+PARADAS.forEach((p) => {
+  let mejor = 0, dmin = Infinity;
+  RUTA.forEach((q, i) => { const d = distancia([p.lon, p.lat], q); if (d < dmin) { dmin = d; mejor = i; } });
+  p.metros = acumulado[mejor];
+});
+
+function puntoEn(d) {
+  d = Math.min(Math.max(d, 0), TOTAL);
+  let i = 1;
+  while (i < acumulado.length - 1 && acumulado[i] < d) i++;
+  const a = RUTA[i - 1], b = RUTA[i];
+  const largo = acumulado[i] - acumulado[i - 1];
+  const f = largo ? (d - acumulado[i - 1]) / largo : 0;
+  // rumbo suavizado: mira ~60 m adelante para que la brújula no salte
+  let j = i;
+  while (j < RUTA.length - 1 && acumulado[j] - d < 60) j++;
+  const pos = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+  return { pos, indice: i - 1, rumbo: rumbo(pos, RUTA[j]) };
+}
+
+// ---------------- Estado ----------------
+const estado = { recorrido: 0, t: 0, velocidad: 60, enMarcha: true, z: 15 };
+const $ = (id) => document.getElementById(id);
+
+// Marcadores de paradas (vista y minimapa)
+function crearMarca(p, i, conEtiqueta) {
+  const g = document.createElementNS(SVG, 'g');
+  const ultima = i === PARADAS.length - 1;
+  const forma = document.createElementNS(SVG, ultima ? 'path' : i === 0 ? 'rect' : 'circle');
+  const t = conEtiqueta ? 1 : 0.55;
+  if (ultima) {
+    forma.setAttribute('d', `M0 ${-16 * t} L${16 * t} ${12 * t} L${-16 * t} ${12 * t} Z`);
+    forma.setAttribute('style', 'fill: var(--destino); stroke: #2a1d0a; stroke-width: 2.5; stroke-linejoin: round');
+  } else if (i === 0) {
+    const s = 24 * t;
+    forma.setAttribute('x', -s / 2); forma.setAttribute('y', -s / 2);
+    forma.setAttribute('width', s); forma.setAttribute('height', s); forma.setAttribute('rx', 5 * t);
+    forma.setAttribute('style', 'fill: var(--base); stroke: #0d1b2a; stroke-width: 2.5');
+  } else {
+    forma.setAttribute('r', 9 * t);
+    forma.setAttribute('style', 'fill: #1a120c; stroke: #fff4ec; stroke-width: 3');
+  }
+  g.appendChild(forma);
+  if (conEtiqueta) {
+    const texto = document.createElementNS(SVG, 'text');
+    texto.setAttribute('x', 18);
+    texto.setAttribute('y', 5);
+    texto.setAttribute('class', 'etiqueta-parada');
+    texto.textContent = p.nombre;
+    g.appendChild(texto);
+  }
+  return g;
+}
+PARADAS.forEach((p, i) => {
+  p.marcaVista = crearMarca(p, i, true);
+  $('vParadas').appendChild(p.marcaVista);
+  p.marcaMini = crearMarca(p, i, false);
+  $('mParadas').appendChild(p.marcaMini);
+});
+
+// ---------------- Vista principal ----------------
+const cache = new Map();
+let origen = null; // tesela de referencia para no usar coordenadas CSS gigantes
+
+function dibujarVista(punto) {
+  const z = estado.z;
+  const ancho = window.innerWidth, alto = window.innerHeight;
+  const [cx, cy] = aPixel(punto.pos, z);
+  const izq = cx - ancho / 2, arriba = cy - alto / 2;
+
+  if (!origen || origen.z !== z) {
+    origen = { z, col: Math.floor(cx / TESELA), fila: Math.floor(cy / TESELA) };
+    cache.forEach((img) => img.remove());
+    cache.clear();
+  }
+  const c0 = Math.floor(izq / TESELA), c1 = Math.floor((izq + ancho) / TESELA);
+  const f0 = Math.floor(arriba / TESELA), f1 = Math.floor((arriba + alto) / TESELA);
+  const visibles = new Set();
+  for (let f = f0; f <= f1; f++) {
+    for (let c = c0; c <= c1; c++) {
+      const clave = `${f}/${c}`;
+      visibles.add(clave);
+      if (!cache.has(clave)) {
+        const img = new Image();
+        img.alt = '';
+        img.src = urlTesela(z, f, c);
+        img.onerror = () => { img.style.visibility = 'hidden'; };
+        img.style.left = `${(c - origen.col) * TESELA}px`;
+        img.style.top = `${(f - origen.fila) * TESELA}px`;
+        $('teselas').appendChild(img);
+        cache.set(clave, img);
+      }
+    }
+  }
+  cache.forEach((img, clave) => { if (!visibles.has(clave)) { img.remove(); cache.delete(clave); } });
+  $('teselas').style.transform = `translate(${origen.col * TESELA - izq}px, ${origen.fila * TESELA - arriba}px)`;
+
+  const aPantalla = (p) => { const [x, y] = aPixel(p, z); return [x - izq, y - arriba]; };
+  const puntos = (lista) => lista.map((p) => aPantalla(p).map((n) => n.toFixed(1)).join(',')).join(' ');
+  $('vRecorrido').setAttribute('points', puntos([...RUTA.slice(0, punto.indice + 1), punto.pos]));
+  $('vPendiente').setAttribute('points', puntos([punto.pos, ...RUTA.slice(punto.indice + 1)]));
+  PARADAS.forEach((p) => {
+    const [x, y] = aPantalla([p.lon, p.lat]);
+    p.marcaVista.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  });
+  $('vAstronauta').setAttribute('transform', `translate(${ancho / 2} ${alto / 2})`);
+  $('vFlecha').setAttribute('transform', `rotate(${punto.rumbo})`);
+
+  // escala: barra de un largo "redondo" de al menos 90 px
+  const mpp = metrosPorPixel(z);
+  const metros = [20, 50, 100, 200, 500, 1000, 2000].find((m) => m / mpp >= 90) ?? 2000;
+  $('escalaBarra').style.width = `${metros / mpp}px`;
+  $('escalaTexto').textContent = metros >= 1000 ? `${metros / 1000} km` : `${metros} m`;
+}
+
+// ---------------- Minimapa: recorrido completo ----------------
+const ZMINI = 13;
+const lons = RUTA.map((p) => p[0]), lats = RUTA.map((p) => p[1]);
+const margen = 0.006; // grados alrededor de la ruta
+const caja = {
+  oeste: Math.min(...lons) - margen, este: Math.max(...lons) + margen,
+  norte: Math.max(...lats) + margen, sur: Math.min(...lats) - margen,
+};
+const [mx0, my0] = aPixel([caja.oeste, caja.norte], ZMINI);
+const [mx1, my1] = aPixel([caja.este, caja.sur], ZMINI);
+let escalaMini = 1, despMini = [0, 0];
+
+function armarMinimapa() {
+  const marco = $('miniMarco');
+  const lado = marco.clientWidth;
+  escalaMini = Math.min(lado / (mx1 - mx0), lado / (my1 - my0));
+  despMini = [(lado - (mx1 - mx0) * escalaMini) / 2, (lado - (my1 - my0) * escalaMini) / 2];
+
+  const cont = $('miniTeselas');
+  cont.replaceChildren();
+  const c0 = Math.floor(mx0 / TESELA), c1 = Math.floor(mx1 / TESELA);
+  const f0 = Math.floor(my0 / TESELA), f1 = Math.floor(my1 / TESELA);
+  for (let f = f0; f <= f1; f++) {
+    for (let c = c0; c <= c1; c++) {
+      const img = new Image();
+      img.alt = '';
+      img.src = urlTesela(ZMINI, f, c);
+      img.style.left = `${c * TESELA - mx0}px`;
+      img.style.top = `${f * TESELA - my0}px`;
+      cont.appendChild(img);
+    }
+  }
+  cont.style.transform = `translate(${despMini[0]}px, ${despMini[1]}px) scale(${escalaMini})`;
+  $('mRuta').setAttribute('points', RUTA.map((p) => aMini(p).join(',')).join(' '));
+  PARADAS.forEach((p) => {
+    const [x, y] = aMini([p.lon, p.lat]);
+    p.marcaMini.setAttribute('transform', `translate(${x} ${y})`);
+  });
+}
+function aMini(p) {
+  const [x, y] = aPixel(p, ZMINI);
+  return [((x - mx0) * escalaMini + despMini[0]).toFixed(1), ((y - my0) * escalaMini + despMini[1]).toFixed(1)];
+}
+
+function dibujarMinimapa(punto) {
+  $('mRecorrido').setAttribute('points', [...RUTA.slice(0, punto.indice + 1), punto.pos].map((p) => aMini(p).join(',')).join(' '));
+  const [x, y] = aMini(punto.pos);
+  $('mAstronauta').setAttribute('cx', x);
+  $('mAstronauta').setAttribute('cy', y);
+}
+
+// ---------------- Brújula ----------------
+const PX_POR_GRADO = 4;
+(function armarCinta() {
+  const cardinales = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SO', 270: 'O', 315: 'NO' };
+  for (let g = -360; g <= 720; g += 15) {
+    const n = ((g % 360) + 360) % 360;
+    const marca = document.createElement('span');
+    marca.className = 'brujula__marca' + (cardinales[n] ? ' brujula__marca--cardinal' : '') + (n === 0 ? ' norte' : '');
+    marca.textContent = cardinales[n] ?? String(n);
+    marca.style.left = `${g * PX_POR_GRADO}px`;
+    $('cinta').appendChild(marca);
+  }
+})();
+
+function dibujarBrujula(r) {
+  $('cinta').style.transform = `translateX(${-r * PX_POR_GRADO}px)`;
+  $('rumbo').textContent = `${String(Math.round(r) % 360).padStart(3, '0')}°`;
+}
+
+// ---------------- Textos ----------------
+const km = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
+function formatearTiempo(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = Math.floor(s % 60);
+  return [h, m, x].map((n) => String(n).padStart(2, '0')).join(':');
+}
+
+function dibujarTextos(punto) {
+  $('reloj').textContent = formatearTiempo(estado.t);
+  const [lon, lat] = punto.pos;
+  $('coords').textContent = `${Math.abs(lat).toFixed(4)}° S  ${lon.toFixed(4)}° E`;
+  $('distancia').textContent = km(TOTAL - estado.recorrido);
+  $('recorrido').textContent = km(estado.recorrido);
+  const prox = PARADAS.find((p) => p.metros > estado.recorrido);
+  $('proxNombre').textContent = prox ? prox.nombre : 'Llegaste al destino';
+  $('proxDetalle').textContent = prox ? prox.detalle : 'Pahrump Hills, base del Monte Sharp';
+  $('proxDistancia').textContent = prox ? km(prox.metros - estado.recorrido) : '—';
+  $('btnMarcha').textContent = estado.enMarcha ? 'Pausar' : 'Iniciar';
+}
+
+function dibujar() {
+  const punto = puntoEn(estado.recorrido);
+  dibujarVista(punto);
+  dibujarMinimapa(punto);
+  dibujarBrujula(punto.rumbo);
+  dibujarTextos(punto);
+}
+
+// ---------------- Bucle ----------------
+let anterior = performance.now();
+function cuadro(ahora) {
+  const dt = Math.min((ahora - anterior) / 1000, 0.25);
+  anterior = ahora;
+  if (estado.enMarcha) {
+    estado.t += dt * estado.velocidad;
+    estado.recorrido += dt * estado.velocidad * VEL_CAMINATA;
+    if (estado.recorrido >= TOTAL) { estado.recorrido = TOTAL; estado.enMarcha = false; }
+    dibujar();
+  }
+  requestAnimationFrame(cuadro);
+}
+
+// ---------------- Controles ----------------
+$('btnMarcha').addEventListener('click', () => {
+  if (estado.recorrido >= TOTAL) { estado.recorrido = 0; estado.t = 0; }
+  estado.enMarcha = !estado.enMarcha;
+  dibujar();
+});
+$('btnReiniciar').addEventListener('click', () => {
+  Object.assign(estado, { recorrido: 0, t: 0, enMarcha: false });
+  dibujar();
+});
+document.querySelectorAll('[data-velocidad]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    estado.velocidad = Number(btn.dataset.velocidad);
+    document.querySelectorAll('[data-velocidad]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+  });
+});
+$('btnAcercar').addEventListener('click', () => { estado.z = Math.min(16, estado.z + 1); dibujar(); });
+$('btnAlejar').addEventListener('click', () => { estado.z = Math.max(12, estado.z - 1); dibujar(); });
+document.querySelectorAll('.alerta button').forEach((btn) => {
+  btn.addEventListener('click', () => btn.closest('.alerta').remove());
+});
+window.addEventListener('resize', () => { armarMinimapa(); dibujar(); });
+
+armarMinimapa();
+dibujar();
+requestAnimationFrame(cuadro);
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Cráter Gale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#101215}
+a{color:#f0a37a}a:hover{color:#ffc4a3}
+</style>
+</head>
+<body>
+<div style="min-height: 100vh; box-sizing: border-box; background: #101215; color: #ece8e4; font-family: Inter, system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <!-- Barra superior -->
+  <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; padding: 16px 24px; border-bottom: 1px solid #2a2e35; background: #15181c">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: 0.01em">Martian Map</h1>
+      <p style="margin: 0; font-size: 13px; color: #a6acb4">Cráter Gale · Base del Monte Sharp</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+      <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #a6acb4">Tiempo de misión</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 500; letter-spacing: 0.04em">01:42:18</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+      <span style="display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; font-size: 13px; color: #8fd19e">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="5" style="fill: #8fd19e"></circle></svg>
+        En marcha
+      </span>
+      <button type="button" style="height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #3a3f47; background: #232830; color: #ece8e4; font: 500 14px Inter, sans-serif; cursor: pointer">Pausar</button>
+      <button type="button" style="height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #3a3f47; background: transparent; color: #ece8e4; font: 500 14px Inter, sans-serif; cursor: pointer">Reiniciar</button>
+      <div role="group" aria-label="Velocidad" style="display: flex; border: 1px solid #3a3f47; border-radius: 8px; overflow: hidden">
+        <button type="button" aria-pressed="false" style="min-width: 52px; height: 44px; border: 0; background: transparent; color: #c9cdd2; font: 500 14px 'JetBrains Mono', monospace; cursor: pointer">x1</button>
+        <button type="button" aria-pressed="true" style="min-width: 52px; height: 44px; border: 0; background: #e0784a; color: #1a0f0a; font: 600 14px 'JetBrains Mono', monospace; cursor: pointer">x10</button>
+        <button type="button" aria-pressed="false" style="min-width: 52px; height: 44px; border: 0; background: transparent; color: #c9cdd2; font: 500 14px 'JetBrains Mono', monospace; cursor: pointer">x60</button>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex: 1; display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 24px; align-items: flex-start">
+
+    <!-- Mapa (lo monta el otro equipo; aquí solo de referencia) -->
+    <section aria-label="Mapa" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+      <div style="position: relative; border-radius: 12px; overflow: hidden; border: 1px solid #2a2e35; background: #24170f">
+        <svg viewBox="0 0 1200 1000" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa del cráter Gale entre 137.30 y 137.60 grados este y 4.50 y 4.75 grados sur, con la ruta desde Bradbury Landing hacia la base del Monte Sharp" style="display: block; width: 100%; height: auto">
+          <!-- terreno: el Monte Sharp sube hacia el sur -->
+          <rect x="0" y="0" width="1200" height="1000" style="fill: #24170f"></rect>
+          <ellipse cx="760" cy="1420" rx="980" ry="700" style="fill: #2c1c13"></ellipse>
+          <ellipse cx="760" cy="1420" rx="860" ry="600" style="fill: #332116"></ellipse>
+          <ellipse cx="760" cy="1420" rx="740" ry="500" style="fill: #3b2619"></ellipse>
+          <ellipse cx="760" cy="1420" rx="620" ry="400" style="fill: #432b1c"></ellipse>
+          <ellipse cx="760" cy="1420" rx="980" ry="700" style="fill: none; stroke: #4d3424; stroke-width: 2"></ellipse>
+          <ellipse cx="760" cy="1420" rx="860" ry="600" style="fill: none; stroke: #573b29; stroke-width: 2"></ellipse>
+          <ellipse cx="760" cy="1420" rx="740" ry="500" style="fill: none; stroke: #61432e; stroke-width: 2"></ellipse>
+          <ellipse cx="760" cy="1420" rx="620" ry="400" style="fill: none; stroke: #6b4a33; stroke-width: 2"></ellipse>
+
+          <!-- cuadrícula cada 0.05° -->
+          <g style="stroke: #ffffff; stroke-opacity: 0.08; stroke-width: 1">
+            <line x1="200" y1="0" x2="200" y2="1000"></line>
+            <line x1="400" y1="0" x2="400" y2="1000"></line>
+            <line x1="600" y1="0" x2="600" y2="1000"></line>
+            <line x1="800" y1="0" x2="800" y2="1000"></line>
+            <line x1="1000" y1="0" x2="1000" y2="1000"></line>
+            <line x1="0" y1="200" x2="1200" y2="200"></line>
+            <line x1="0" y1="400" x2="1200" y2="400"></line>
+            <line x1="0" y1="600" x2="1200" y2="600"></line>
+            <line x1="0" y1="800" x2="1200" y2="800"></line>
+          </g>
+          <g style="fill: #d8c7bb; font: 500 18px 'JetBrains Mono', monospace">
+            <text x="200" y="28" style="text-anchor: middle">137.35° E</text>
+            <text x="400" y="28" style="text-anchor: middle">137.40° E</text>
+            <text x="600" y="28" style="text-anchor: middle">137.45° E</text>
+            <text x="800" y="28" style="text-anchor: middle">137.50° E</text>
+            <text x="1000" y="28" style="text-anchor: middle">137.55° E</text>
+            <text x="12" y="194">4.55° S</text>
+            <text x="12" y="394">4.60° S</text>
+            <text x="12" y="594">4.65° S</text>
+            <text x="12" y="794">4.70° S</text>
+          </g>
+
+          <!-- ruta: recorrido (sólido) y pendiente (punteado) -->
+          <polyline points="567,358 500,440 420,560 400,628" style="fill: none; stroke: #f2efe9; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round"></polyline>
+          <polyline points="400,628 380,700 340,860" style="fill: none; stroke: #f2efe9; stroke-width: 4; stroke-dasharray: 4 14; stroke-linecap: round; stroke-linejoin: round"></polyline>
+          <circle cx="500" cy="440" r="7" style="fill: #24170f; stroke: #f2efe9; stroke-width: 3"></circle>
+          <circle cx="420" cy="560" r="7" style="fill: #24170f; stroke: #f2efe9; stroke-width: 3"></circle>
+          <circle cx="380" cy="700" r="7" style="fill: #24170f; stroke: #f2efe9; stroke-width: 3"></circle>
+
+          <!-- base -->
+          <rect x="551" y="342" width="32" height="32" rx="6" style="fill: #6cb6ff; stroke: #0d1b2a; stroke-width: 3"></rect>
+          <text x="597" y="352" style="fill: #ece8e4; font: 600 20px Inter, sans-serif">Base</text>
+          <text x="597" y="376" style="fill: #d8c7bb; font: 400 16px Inter, sans-serif">Bradbury Landing</text>
+
+          <!-- destino -->
+          <path d="M340 836 L362 876 L318 876 Z" style="fill: #f2c14e; stroke: #2a1d0a; stroke-width: 3; stroke-linejoin: round"></path>
+          <text x="376" y="866" style="fill: #ece8e4; font: 600 20px Inter, sans-serif">Destino</text>
+          <text x="376" y="890" style="fill: #d8c7bb; font: 400 16px Inter, sans-serif">Base del Monte Sharp</text>
+
+          <!-- astronauta -->
+          <circle cx="400" cy="628" r="26" style="fill: #e0784a; fill-opacity: 0.25"></circle>
+          <circle cx="400" cy="628" r="12" style="fill: #e0784a; stroke: #fff4ec; stroke-width: 4"></circle>
+
+          <!-- escala: 2 km ≈ 135 px -->
+          <g>
+            <rect x="1020" y="952" width="135" height="8" style="fill: #f2efe9"></rect>
+            <rect x="1020" y="952" width="67" height="8" style="fill: #24170f; stroke: #f2efe9; stroke-width: 2"></rect>
+            <text x="1088" y="940" style="fill: #d8c7bb; font: 500 16px 'JetBrains Mono', monospace; text-anchor: middle">2 km</text>
+          </g>
+        </svg>
+
+        <!-- posición del astronauta -->
+        <div style="position: absolute; top: 48px; right: 16px; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 10px; background: #101215; border: 1px solid #2a2e35">
+          <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #a6acb4">Posición del astronauta</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px">4.657° S · 137.400° E</span>
+        </div>
+      </div>
+
+      <!-- leyenda -->
+      <ul aria-label="Leyenda" style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: #c9cdd2">
+        <li style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="12" height="12" rx="3" style="fill: #6cb6ff"></rect></svg>Base</li>
+        <li style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" style="fill: #e0784a"></circle></svg>Astronauta</li>
+        <li style="display: flex; align-items: center; gap: 8px"><svg width="28" height="6" viewBox="0 0 28 6" aria-hidden="true"><line x1="2" y1="3" x2="26" y2="3" style="stroke: #f2efe9; stroke-width: 4; stroke-linecap: round"></line></svg>Recorrido</li>
+        <li style="display: flex; align-items: center; gap: 8px"><svg width="28" height="6" viewBox="0 0 28 6" aria-hidden="true"><line x1="2" y1="3" x2="26" y2="3" style="stroke: #f2efe9; stroke-width: 3; stroke-dasharray: 2 5; stroke-linecap: round"></line></svg>Ruta pendiente</li>
+        <li style="display: flex; align-items: center; gap: 8px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1 L13 12 L1 12 Z" style="fill: #f2c14e"></path></svg>Destino</li>
+        <li style="margin-left: auto; color: #8a9099">Mapa de referencia: lo monta el equipo del mapa con Mars Trek</li>
+      </ul>
+    </section>
+
+    <!-- Zona de alertas -->
+    <aside aria-label="Alertas" style="flex: 1 1 320px; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+        <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600">Alertas</h2>
+        <span style="font-size: 13px; color: #a6acb4">3 activas</span>
+      </div>
+
+      <ul aria-live="polite" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+
+        <li role="alert" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 10px; background: #3a1414; border: 2px solid #ff6b5e">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="M12 3 L22 20 L2 20 Z" style="fill: none; stroke: #ff8a7f; stroke-width: 2; stroke-linejoin: round"></path><line x1="12" y1="9" x2="12" y2="14" style="stroke: #ff8a7f; stroke-width: 2; stroke-linecap: round"></line><circle cx="12" cy="17" r="1.2" style="fill: #ff8a7f"></circle></svg>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #ff8a7f">Crítico · Oxígeno</span>
+            <span style="font-size: 15px; font-weight: 600; color: #fff1ef">El oxígeno no alcanza para volver</span>
+            <span style="font-size: 13px; color: #f3c9c4">Quedan 38 min y la vuelta a la base toma 41 min.</span>
+          </div>
+          <button type="button" aria-label="Cerrar alerta: el oxígeno no alcanza para volver" style="flex: none; width: 44px; height: 44px; margin: -10px -10px -10px 0; border: 0; border-radius: 8px; background: transparent; color: #f3c9c4; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #f3c9c4; stroke-width: 2; stroke-linecap: round"></path></svg>
+          </button>
+        </li>
+
+        <li style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 10px; background: #2e2510; border: 1px solid #c99a2e">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="9" style="fill: none; stroke: #f2c14e; stroke-width: 2"></circle><line x1="12" y1="7" x2="12" y2="13" style="stroke: #f2c14e; stroke-width: 2; stroke-linecap: round"></line><circle cx="12" cy="16.5" r="1.2" style="fill: #f2c14e"></circle></svg>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #f2c14e">Aviso · Salud</span>
+            <span style="font-size: 15px; font-weight: 600; color: #fbf3df">Pulso alto</span>
+            <span style="font-size: 13px; color: #e2d3ad">128 lpm. El límite de aviso es 120.</span>
+          </div>
+          <button type="button" aria-label="Cerrar alerta: pulso alto" style="flex: none; width: 44px; height: 44px; margin: -10px -10px -10px 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #e2d3ad; stroke-width: 2; stroke-linecap: round"></path></svg>
+          </button>
+        </li>
+
+        <li style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 10px; background: #15202c; border: 1px solid #2f4a66">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="flex: none; margin-top: 1px"><circle cx="12" cy="12" r="9" style="fill: none; stroke: #8cc4ff; stroke-width: 2"></circle><circle cx="12" cy="7.5" r="1.2" style="fill: #8cc4ff"></circle><line x1="12" y1="11" x2="12" y2="17" style="stroke: #8cc4ff; stroke-width: 2; stroke-linecap: round"></line></svg>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+            <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #8cc4ff">Info · Temperatura</span>
+            <span style="font-size: 15px; font-weight: 600; color: #e8f2fd">Temperatura exterior: −58 °C</span>
+            <span style="font-size: 13px; color: #b9cde2">El traje está en 22 °C, dentro del rango.</span>
+          </div>
+          <button type="button" aria-label="Cerrar alerta: temperatura exterior" style="flex: none; width: 44px; height: 44px; margin: -10px -10px -10px 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3 L13 13 M13 3 L3 13" style="stroke: #b9cde2; stroke-width: 2; stroke-linecap: round"></path></svg>
+          </button>
+        </li>
+      </ul>
+
+      <p style="margin: 4px 0 0; font-size: 12px; color: #8a9099">Valores de ejemplo para el diseño. Los reales vienen de la simulación.</p>
+    </aside>
+  </main>
+</div>
+</body>
+</html>

@@ -2,82 +2,66 @@
 
 **Repo de la app:** [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map). La interfaz se arma primero en este repo y, cuando esté lista, se pasa ahí.
 **Responsables:** Juan y Pamela
-**Stack:** React + Vite (Chart.js más adelante, para el panel)
-**Base:** [Reunión 1](https://github.com/NasaSpaceChallenge-DeploySinMerken/docs/blob/main/Reunion1_ordenada.md) · [Arquitectura](arquitectura.jpeg)
+**Stack:** React + Vite
+**Base:** [Reunión 1](https://github.com/NasaSpaceChallenge-DeploySinMerken/docs/blob/main/Reunion1_ordenada.md) · [Arquitectura](arquitectura.jpeg) · [Contrato con el backend](Contrato_API.md)
+**Zona de la demo:** Cráter Gale, 137.30–137.60° E y 4.50–4.75° S.
 
-## 1. Qué nos toca
+## 1. Qué hace la interfaz
 
-En la [arquitectura](arquitectura.jpeg) del proyecto ([martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map)), lo nuestro es **la interfaz del navegador**:
+La interfaz conversa con el backend en dos fases (detalle en [Contrato_API.md](Contrato_API.md)):
 
-| Carpeta / archivo | Responsable | Qué es |
-| --- | --- | --- |
-| `src/ui/panel.js` | **Nosotros** | Indicadores con Chart.js. **Por ahora no se hace** (ver sección 2) |
-| `src/ui/alerts.js` | **Nosotros** | Alertas de oxígeno, temperatura y salud |
-| `index.html`, `src/style.css` | **Nosotros** | Estructura y estilo de la página |
-| `src/map/` | Otro equipo | Mapa OpenLayers, capas de Mars Trek, proyección |
-| `src/sim/` | Otro equipo | Posición del astronauta, recursos, teclado y joystick |
-| `analysis/`, `public/data/` | Otro equipo | Análisis en Python y la ruta en GeoJSON |
+1. **Preparar el viaje.** Pide las capas disponibles, recibe el punto de aterrizaje y los puntos a visitar, los manda al backend y muestra la ruta y las métricas que devuelve (oxígeno, esfuerzo, etc.).
+2. **Monitorear.** Durante la caminata manda cada segundo los sensores y la ubicación del astronauta. El backend evalúa el estado y devuelve las alertas, que la interfaz muestra.
 
-Nosotros **no calculamos nada**: leemos el estado que entrega `src/sim/` y lo mostramos. En el mapa solo dejamos el espacio (`<div id="map">`) donde el otro equipo lo monta.
+**Las reglas de las alertas viven en el backend.** La interfaz no decide cuándo hay una alerta: solo la muestra.
+
+| Parte | Responsable |
+| --- | --- |
+| Interfaz (planificación, monitoreo, alertas, estilo) | **Nosotros** |
+| Mapa (OpenLayers, capas de Mars Trek) | Equipo del mapa |
+| Cálculo de la ruta, métricas y reglas de alertas | Equipo del backend |
 
 ## 2. Reparto
 
-**Por ahora, oxígeno, temperatura y salud se muestran solo como alertas.** El panel con gráficos de Chart.js (`panel.js`) queda para después, si hay tiempo.
-
-### Juan — Página, datos de prueba y sistema de alertas
+### Pamela — Fase 1: preparar el viaje, y estilo
 
 | # | Tarea | Detalle |
 | --- | --- | --- |
-| J1 | Proyecto base | ✅ Esqueleto con Vite + React en este repo. Ver [README](README.md). |
-| J2 | Simulación de prueba | `src/mock/simulacionFalsa.js`: genera cada segundo un estado con la forma de la sección 3 (el oxígeno baja, el pulso sube y baja, etc.). Así trabajamos sin esperar a `src/sim/`. |
-| J3 | Layout de la página | Barra superior (tiempo de misión, play/pausa, velocidad), espacio para el mapa y zona de alertas. Que se vea bien en pantalla completa, que es como se va a presentar. |
-| J4 | Sistema de alertas (`alerts.js`) | La parte que muestra las alertas: tres niveles (info, aviso, crítico) que aparecen, se apilan y se pueden cerrar. Sin repetir la misma alerta en cada segundo mientras siga activa. Recibe alertas con la forma `{ id, nivel, mensaje }`, sin saber de dónde vienen. |
+| P1 | Capas | Pedir las capas al backend y dejar elegir cuáles se ven (`SelectorCapas.jsx`). |
+| P2 | Puntos | Punto de aterrizaje y lista de puntos a visitar: agregar, quitar y reordenar, **máximo 6 puntos** (`ListaPuntos.jsx`). Pueden llegar desde un clic en el mapa o escribirse a mano. Validar que estén dentro del tramo. |
+| P3 | Calcular la ruta | Botón que manda todo al backend y muestra un "calculando…" mientras responde (`Planificacion.jsx`). |
+| P4 | Métricas | Distancia, duración, oxígeno necesario, esfuerzo y pendiente máxima, en total y por tramo. Mostrar el error si no hay ruta posible (`Metricas.jsx`). |
+| P5 | Estilo visual | Paleta, tipografía y colores por nivel de alerta en `style.css`, siguiendo [mockup/gale-hud.html](mockup/gale-hud.html). |
 
-### Pamela — Reglas de las alertas y estilo
-
-Cada regla mira el estado de la simulación y devuelve las alertas que correspondan, que el sistema de Juan muestra. Los umbrales son una primera propuesta: ajustarlos con datos reales si se consiguen.
+### Juan — Conexión con el backend y fase 2: monitorear
 
 | # | Tarea | Detalle |
 | --- | --- | --- |
-| P1 | Oxígeno | Aviso bajo 30 %, crítico bajo 15 %. Crítico también si `minutosRestantes` es menor que `minutosParaVolver` (no alcanza para volver). Es la alerta más importante: tiene que ser la más visible. |
-| P2 | Temperatura | Aviso y crítico si la temperatura del traje sale de rango (por ejemplo, fuera de 18–27 °C y de 10–35 °C). La exterior solo como info. |
-| P3 | Salud | Aviso y crítico por pulso alto (más de 120 y de 150) y por saturación baja (menos de 94 % y de 90 %). |
-| P4 | Estilo visual | Paleta de colores, tipografía y estados (normal, aviso, crítico) en `style.css`. Juan los usa en el layout y en las alertas para que todo se vea igual. |
+| J1 | Proyecto base | ✅ Esqueleto con Vite + React. Ver [README](README.md). |
+| J2 | Cliente del backend | `src/api/cliente.js`: las tres llamadas del contrato. Sin `VITE_API_URL` usa el backend falso. |
+| J3 | Backend falso | `src/api/mock.js`: responde con el formato del contrato, para que Pamela y yo trabajemos sin esperar al backend. **Va antes que lo demás.** |
+| J4 | Sensores simulados | `sensoresSimulados.js`: mueve al astronauta por la ruta y genera las lecturas del traje (oxígeno, temperaturas, pulso, saturación). |
+| J5 | Bucle de monitoreo | `useMonitoreo.js`: cada segundo manda posición y sensores y guarda las alertas. Iniciar, pausar, reiniciar y velocidad. Si el backend no responde, avisarlo sin cortar la caminata. |
+| J6 | Alertas y HUD | `useAlertas.js`, `Alertas.jsx` y `BarraSuperior.jsx`: mostrar las alertas del backend (crítico primero, que se puedan cerrar) y la barra superior, siguiendo [mockup/gale-hud.html](mockup/gale-hud.html). |
 
 ### En conjunto
 
 | Tarea | Cuándo |
 | --- | --- |
-| Confirmar con el equipo de `src/sim/` el formato del estado (sección 3) | Al empezar. |
-| Probar las alertas con la simulación de prueba (que la simulación falsa pase por todos los umbrales) | Cuando estén J2, J4 y P1. |
-| Cambiar la simulación de prueba por la real de `src/sim/` | Cuando el equipo de simulación tenga `resources.js` listo. |
-| Prueba completa y demo | Al final, sobre la versión publicada. |
+| Revisar [Contrato_API.md](Contrato_API.md) con el equipo del backend | **Lo antes posible**: todo depende de esto. |
+| Acordar con el equipo del mapa cómo llegan los clics en el mapa (puntos) y cómo se dibuja la ruta | Al empezar. |
+| Probar las dos fases de punta a punta con el backend falso | Cuando estén J3, P3 y J5. |
+| Cambiar al backend real (`VITE_API_URL`) | Cuando el backend tenga las rutas listas. |
+| Prueba completa y demo | Al final. |
 
-## 3. Contrato con el equipo de simulación
+## 3. Forma de trabajo con Git
 
-Es lo único que necesitamos de `src/sim/`. **Propuesta para acordar con ese equipo:**
+1. Cada uno trabaja en su rama: `juan/monitoreo`, `pamela/puntos`, etc.
+2. Los cambios entran a `main` por pull request, y el otro le da una mirada rápida.
+3. Antes de abrir un PR: `git pull origin main` para traer lo último y resolver conflictos en la propia rama.
 
-```js
-{
-  t: 0,                    // segundos desde el inicio de la caminata
-  enMarcha: false,
-  velocidad: 1,            // x1, x10, x60
-  oxigeno: { porcentaje: 100, consumoPorMin: 0.4, minutosRestantes: 250, minutosParaVolver: 40 },
-  temperatura: { exterior: -60, traje: 21 },   // °C
-  salud: { pulso: 80, spo2: 98 }
-}
-```
+## 4. Pendientes
 
-También necesitamos que la simulación avise cada vez que cambia el estado (un evento o un callback) y que exponga `iniciar()`, `pausar()` y `cambiarVelocidad(v)` para los botones de la barra superior.
-
-## 4. Forma de trabajo con Git
-
-1. Juan sube el proyecto base a `main` (J1).
-2. Cada uno trabaja en su rama: `juan/alertas`, `pamela/oxigeno`, etc.
-3. Los cambios entran a `main` por pull request, y el otro le da una mirada rápida.
-4. Antes de abrir un PR: `git pull origin main` para traer lo último y resolver conflictos en la propia rama.
-
-## 5. Pendientes
-
-- **React o JS simple:** la arquitectura usa archivos `.js` (`main.js`, `panel.js`), que es la plantilla de Vite sin React. Si usamos React, hay que avisar al resto del equipo, porque `martian-map` tendría que pasar a `main.jsx` y los componentes de `ui/` a `.jsx`.
-- **Formato del estado:** confirmarlo con el equipo de `src/sim/` (sección 3).
+- **Contrato con el backend:** confirmar formato, unidades de las métricas, qué pasa si no hay ruta y si el monitoreo va por REST o WebSocket.
+- **Clics en el mapa:** cómo nos pasa el equipo del mapa el punto donde se hizo clic.
+- **React o JS simple en martian-map:** la arquitectura usa archivos `.js`. Si usamos React, hay que avisar al resto, porque `martian-map` tendría que pasar a `main.jsx`.

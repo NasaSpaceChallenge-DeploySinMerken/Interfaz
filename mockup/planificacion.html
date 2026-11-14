@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — Preparar el viaje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fondo: #0d0f12;
+    --panel: #15181c;
+    --panel-2: #1c2026;
+    --hud: rgba(13, 15, 18, 0.82);
+    --borde: rgba(255, 255, 255, 0.14);
+    --texto: #ece8e4;
+    --texto-suave: #b3b8bf;
+    --acento: #e0784a;
+    --base: #6cb6ff;
+    --punto: #f2c14e;
+    --error: #ff8a7f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--fondo); color: var(--texto); font-family: Inter, system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  .app { display: flex; height: 100vh; }
+
+  /* ---------- Panel lateral ---------- */
+  .panel-lateral {
+    width: 400px; flex: none; height: 100%; overflow-y: auto;
+    background: var(--panel); border-right: 1px solid var(--borde);
+    display: flex; flex-direction: column;
+  }
+  .cabecera { padding: 20px 20px 16px; border-bottom: 1px solid var(--borde); }
+  .cabecera__marca { margin: 0; font: 600 13px "Space Grotesk", sans-serif; letter-spacing: 0.08em; color: var(--texto-suave); }
+  .cabecera__titulo { margin: 4px 0 2px; font: 600 24px "Space Grotesk", sans-serif; }
+  .cabecera__lugar { margin: 0; font-size: 13px; color: var(--texto-suave); }
+
+  .paso { padding: 18px 20px; border-bottom: 1px solid var(--borde); display: flex; flex-direction: column; gap: 12px; }
+  .paso__titulo { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+  .paso__num {
+    width: 24px; height: 24px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font: 600 12px Inter, sans-serif;
+    background: var(--panel-2); border: 1px solid var(--borde);
+  }
+  .paso__ayuda { margin: 0; font-size: 13px; color: var(--texto-suave); }
+  .paso__contador { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--texto-suave); }
+  .paso__contador.lleno { color: var(--punto); }
+
+  label { font-size: 12px; color: var(--texto-suave); display: flex; flex-direction: column; gap: 4px; }
+  input[type="text"], input[type="number"] {
+    height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--borde);
+    background: var(--panel-2); color: var(--texto); font: 400 14px "JetBrains Mono", monospace; width: 100%;
+  }
+  input[type="text"] { font-family: Inter, sans-serif; }
+  input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+  .fila { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  button, .boton {
+    height: 40px; min-width: 40px; padding: 0 14px; border-radius: 8px;
+    border: 1px solid var(--borde); background: rgba(255, 255, 255, 0.06); color: var(--texto);
+    font: 500 14px Inter, sans-serif; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    text-decoration: none;
+  }
+  button:hover, .boton:hover { background: rgba(255, 255, 255, 0.12); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .boton--principal { background: var(--acento); border-color: var(--acento); color: #1a0f0a; font-weight: 600; }
+  .boton--principal:hover { background: #ea8a5f; }
+  .boton--icono { padding: 0; width: 36px; height: 36px; min-width: 36px; }
+  .boton--texto { border: 0; background: transparent; color: var(--texto-suave); padding: 0 6px; height: 32px; }
+
+  .check { flex-direction: row; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--texto); cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--acento); }
+  .check small { display: block; font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+  .check--fija { cursor: default; opacity: 0.8; }
+
+  .aterrizaje-actual {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--borde); font-size: 13px;
+  }
+  .marca-base { width: 14px; height: 14px; border-radius: 3px; background: var(--base); flex: none; }
+
+  .lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .lista__vacia { font-size: 13px; color: var(--texto-suave); padding: 12px; border: 1px dashed var(--borde); border-radius: 8px; text-align: center; }
+  .punto {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center;
+    padding: 8px 8px 8px 10px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--borde);
+  }
+  .punto__num {
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--punto); color: #2a1d0a; font: 600 13px Inter, sans-serif;
+  }
+  .punto__datos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .punto__nombre { height: 30px; padding: 0 6px; margin-left: -6px; border: 1px solid transparent; background: transparent; font-size: 14px; font-weight: 500; }
+  .punto__nombre:hover { border-color: var(--borde); }
+  .punto__coords { font-size: 12px; color: var(--texto-suave); }
+  .punto__botones { display: flex; gap: 2px; }
+
+  .error { margin: 0; font-size: 13px; color: var(--error); }
+
+  /* Resultado */
+  .metricas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .metrica { padding: 10px 12px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--borde); display: flex; flex-direction: column; gap: 2px; }
+  .metrica__nombre { font-size: 12px; color: var(--texto-suave); }
+  .metrica__valor { font: 500 18px "JetBrains Mono", monospace; }
+  .metrica__valor--pendiente { font: 400 13px Inter, sans-serif; color: var(--texto-suave); }
+  .tramos { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tramos th { text-align: left; font-weight: 500; color: var(--texto-suave); padding: 6px 4px; border-bottom: 1px solid var(--borde); }
+  .tramos td { padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .tramos td.num, .tramos th.num { text-align: right; font-family: "JetBrains Mono", monospace; }
+  .nota { margin: 0; font-size: 12px; color: var(--texto-suave); }
+
+  .pie { margin-top: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--borde); background: var(--panel); position: sticky; bottom: 0; }
+  .pie .boton { height: 48px; width: 100%; font-size: 15px; }
+
+  /* ---------- Mapa ---------- */
+  .mapa { position: relative; flex: 1; min-width: 0; overflow: hidden; background: #1d140e; cursor: crosshair; touch-action: none; }
+  .mapa.arrastrando { cursor: grabbing; }
+  .capa-teselas { position: absolute; inset: 0; pointer-events: none; }
+  .capa-teselas img { position: absolute; width: 256px; height: 256px; user-select: none; }
+  .capa-teselas--color { filter: sepia(1) saturate(2.1) hue-rotate(-14deg) brightness(0.9) contrast(1.05); }
+  .mapa__svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .etiqueta-pin { font: 600 13px Inter, sans-serif; fill: #fff4ec; paint-order: stroke; stroke: rgba(0, 0, 0, 0.8); stroke-width: 4px; }
+
+  .flotante { position: absolute; background: var(--hud); border: 1px solid var(--borde); border-radius: 10px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .modo { top: 16px; left: 50%; transform: translateX(-50%); padding: 6px; display: flex; align-items: center; gap: 6px; }
+  .modo__etiqueta { font-size: 12px; color: var(--texto-suave); padding: 0 6px 0 8px; }
+  .modo button { height: 36px; border: 0; background: transparent; }
+  .modo button[aria-pressed="true"] { background: var(--acento); color: #1a0f0a; font-weight: 600; }
+  .icono-modo { width: 12px; height: 12px; display: inline-block; }
+
+  .barra-mapa { left: 16px; bottom: 16px; padding: 8px 12px; display: flex; align-items: center; gap: 16px; font-size: 12px; }
+  .escala { display: flex; flex-direction: column; gap: 4px; }
+  .escala__barra { height: 5px; background: var(--texto); border-radius: 1px; }
+  .zoom { right: 16px; bottom: 16px; display: flex; flex-direction: column; overflow: hidden; }
+  .zoom button { border: 0; border-radius: 0; width: 44px; height: 44px; font-size: 20px; background: transparent; }
+  .zoom button + button { border-top: 1px solid var(--borde); }
+  .creditos { right: 76px; bottom: 16px; padding: 6px 10px; font-size: 11px; color: var(--texto-suave); max-width: 420px; }
+
+  .aviso {
+    top: 72px; left: 50%; transform: translateX(-50%); padding: 10px 14px; font-size: 13px;
+    border-color: rgba(255, 138, 127, 0.6); color: #ffd9d4; opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  }
+  .aviso.visible { opacity: 1; }
+
+  @media (max-width: 860px) {
+    .app { flex-direction: column-reverse; height: auto; min-height: 100vh; }
+    .panel-lateral { width: 100%; height: auto; border-right: 0; }
+    .mapa { height: 60vh; flex: none; }
+    .creditos { display: none; }
+    .pie { position: static; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= Panel ================= -->
+  <aside class="panel-lateral" aria-label="Preparar el viaje">
+    <header class="cabecera">
+      <p class="cabecera__marca">MARTIAN MAP</p>
+      <h1 class="cabecera__titulo">Preparar el viaje</h1>
+      <p class="cabecera__lugar">Cráter Gale · 137.30–137.60° E, 4.50–4.75° S</p>
+    </header>
+
+    <!-- Paso 1: capas -->
+    <section class="paso" aria-labelledby="t-capas">
+      <h2 class="paso__titulo" id="t-capas"><span class="paso__num">1</span>Capas del mapa</h2>
+      <label class="check"><input type="checkbox" id="capaCtx" checked> <span>MRO CTX, Gale Crater Mosaic<small>Vista general del cráter, unos 6 m por píxel.</small></span></label>
+      <label class="check"><input type="checkbox" id="capaHirise" checked> <span>MRO HiRISE, Curiosity Roving Site<small>Detalle de menos de 1 m por píxel. Se ve al acercarse.</small></span></label>    </section>
+
+    <!-- Paso 2: aterrizaje -->
+    <section class="paso" aria-labelledby="t-aterrizaje">
+      <h2 class="paso__titulo" id="t-aterrizaje"><span class="paso__num">2</span>Punto de aterrizaje</h2>
+      <div class="aterrizaje-actual" id="aterrizajeActual" hidden>
+        <span class="marca-base" aria-hidden="true"></span>
+        <span class="mono" id="aterrizajeTexto"></span>
+      </div>
+      <p class="paso__ayuda" id="aterrizajeAyuda">Haz clic en el mapa o escribe las coordenadas.</p>
+      <form class="fila" id="formAterrizaje" novalidate>
+        <label>Longitud (° E)<input type="number" id="atLon" step="0.0001" placeholder="137.4416" inputmode="decimal"></label>
+        <label>Latitud (° S)<input type="number" id="atLat" step="0.0001" placeholder="4.5895" inputmode="decimal"></label>
+        <button type="submit" style="grid-column: 1 / -1">Fijar aterrizaje</button>
+      </form>
+    </section>
+
+    <!-- Paso 3: puntos a visitar -->
+    <section class="paso" aria-labelledby="t-puntos">
+      <h2 class="paso__titulo" id="t-puntos"><span class="paso__num">3</span>Puntos a visitar<span class="paso__contador mono" id="contador">0 de 6</span></h2>
+      <ol class="lista" id="listaPuntos" aria-label="Puntos a visitar, en orden"></ol>
+      <form class="fila" id="formPunto" novalidate>
+        <label style="grid-column: 1 / -1">Nombre (opcional)<input type="text" id="ptNombre" placeholder="Ej.: Darwin"></label>
+        <label>Longitud (° E)<input type="number" id="ptLon" step="0.0001" placeholder="137.4271" inputmode="decimal"></label>
+        <label>Latitud (° S)<input type="number" id="ptLat" step="0.0001" placeholder="4.6063" inputmode="decimal"></label>
+        <button type="submit" style="grid-column: 1 / -1">Agregar punto</button>
+      </form>
+      <label class="check"><input type="checkbox" id="volver" checked> <span>Volver al punto de aterrizaje<small>La ruta termina donde empezó.</small></span></label>
+      <div class="acciones">
+        <button type="button" class="boton--texto" id="btnEjemplo">Cargar ejemplo</button>
+        <button type="button" class="boton--texto" id="btnLimpiar">Borrar todo</button>
+      </div>
+    </section>
+
+    <!-- Resultado -->
+    <section class="paso" id="resultado" aria-labelledby="t-resultado" aria-live="polite" hidden>
+      <h2 class="paso__titulo" id="t-resultado"><span class="paso__num">4</span>Ruta calculada</h2>
+      <div class="metricas">
+        <div class="metrica"><span class="metrica__nombre">Distancia</span><span class="metrica__valor" id="mDistancia">—</span></div>
+        <div class="metrica"><span class="metrica__nombre">Duración</span><span class="metrica__valor" id="mDuracion">—</span></div>
+        <div class="metrica"><span class="metrica__nombre">Oxígeno necesario</span><span class="metrica__valor" id="mOxigeno">—</span></div>
+        <div class="metrica"><span class="metrica__nombre">Esfuerzo</span><span class="metrica__valor" id="mEsfuerzo">—</span></div>
+        <div class="metrica" style="grid-column: 1 / -1"><span class="metrica__nombre">Pendiente máxima</span><span class="metrica__valor metrica__valor--pendiente">La calcula el backend</span></div>
+      </div>
+      <table class="tramos">
+        <caption class="nota" style="text-align: left; padding-bottom: 6px">Por tramo</caption>
+        <thead><tr><th scope="col">Tramo</th><th scope="col" class="num">Distancia</th><th scope="col" class="num">Tiempo</th><th scope="col" class="num">O₂</th></tr></thead>
+        <tbody id="tablaTramos"></tbody>
+      </table>
+      <p class="nota">Valores de ejemplo en línea recta. El backend calcula la ruta real según el terreno.</p>
+    </section>
+
+    <footer class="pie">
+      <p class="error" id="errorRuta" hidden></p>
+      <button type="button" class="boton boton--principal" id="btnCalcular" disabled>Calcular ruta</button>
+      <a class="boton" id="btnComenzar" href="gale-hud.html" hidden>Comenzar caminata →</a>
+    </footer>
+  </aside>
+
+  <!-- ================= Mapa ================= -->
+  <main class="mapa" id="mapa" aria-label="Mapa del cráter Gale. Haz clic para marcar puntos.">
+    <div class="capa-teselas capa-teselas--color" id="teselasCtx"></div>
+    <div class="capa-teselas capa-teselas--color" id="teselasHirise"></div>
+    <svg class="mapa__svg" id="svg">
+      <path id="fueraTramo" style="fill: #000; fill-opacity: 0.45; fill-rule: evenodd"></path>
+      <rect id="bordeTramo" style="fill: none; stroke: #fff4ec; stroke-opacity: 0.6; stroke-width: 1.5; stroke-dasharray: 6 6"></rect>
+      <polyline id="lineaRuta" style="fill: none; stroke: #fff4ec; stroke-width: 3; stroke-dasharray: 8 8; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85"></polyline>
+      <polyline id="lineaCalculada" style="fill: none; stroke: var(--acento); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round"></polyline>
+      <g id="pines"></g>
+    </svg>
+
+    <div class="flotante modo" role="group" aria-label="Qué marcar al hacer clic">
+      <span class="modo__etiqueta">Al hacer clic marcar:</span>
+      <button type="button" id="modoAterrizaje" aria-pressed="true">
+        <svg class="icono-modo" viewBox="0 0 12 12" aria-hidden="true"><rect width="12" height="12" rx="3" style="fill: var(--base)"></rect></svg>Aterrizaje
+      </button>
+      <button type="button" id="modoPunto" aria-pressed="false">
+        <svg class="icono-modo" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="6" style="fill: var(--punto)"></circle></svg>Punto a visitar
+      </button>
+    </div>
+
+    <div class="flotante aviso" id="aviso" role="status"></div>
+
+    <div class="flotante barra-mapa">
+      <div class="escala"><div class="escala__barra" id="escalaBarra"></div><span class="mono" id="escalaTexto">—</span></div>
+      <span class="mono" id="cursor">Mueve el cursor sobre el mapa</span>
+    </div>
+
+    <p class="flotante creditos">Imágenes: CTX (NASA/JPL-Caltech/MSSS) y HiRISE (NASA/JPL-Caltech/Univ. of Arizona), vía NASA Mars Trek. Coloreadas para el diseño.</p>
+
+    <div class="flotante zoom">
+      <button type="button" id="btnAcercar" aria-label="Acercar">+</button>
+      <button type="button" id="btnAlejar" aria-label="Alejar">−</button>
+    </div>
+  </main>
+</div>
+
+<script>
+// ================= Datos =================
+const TRAMO = { oeste: 137.30, este: 137.60, norte: -4.50, sur: -4.75 };
+const CAPAS = {
+  ctx: { id: 'Gale_CTX_BlockAdj_dd', el: 'teselasCtx', zMax: 14 },
+  hirise: { id: 'curiosity_hirise_mosaic', el: 'teselasHirise', zMin: 13, zMax: 17 },
+};
+const EJEMPLO = {
+  aterrizaje: { lon: 137.4416, lat: -4.5895 },
+  puntos: [
+    { nombre: 'Darwin', lon: 137.4271, lat: -4.6063 },
+    { nombre: 'The Kimberley', lon: 137.4020, lat: -4.6388 },
+    { nombre: 'Pahrump Hills', lon: 137.3830, lat: -4.6592 },
+  ],
+};
+
+const MAX_PUNTOS = 6; // puntos a visitar, sin contar el aterrizaje
+
+// ================= Geometría =================
+const TESELA = 256, RADIO_MARTE = 3389500, SVG = 'http://www.w3.org/2000/svg';
+const grados = (z) => 180 / 2 ** z;
+const rad = (g) => (g * Math.PI) / 180;
+const aPixel = (lon, lat, z) => [((lon + 180) / grados(z)) * TESELA, ((90 - lat) / grados(z)) * TESELA];
+const aGrados = (x, y, z) => [(x / TESELA) * grados(z) - 180, 90 - (y / TESELA) * grados(z)];
+const urlTesela = (capa, z, f, c) => `https://trek.nasa.gov/tiles/Mars/EQ/${capa}/1.0.0/default/default028mm/${z}/${f}/${c}.png`;
+function distancia(a, b) {
+  const dx = rad(b.lon - a.lon) * RADIO_MARTE * Math.cos(rad(a.lat));
+  const dy = rad(b.lat - a.lat) * RADIO_MARTE;
+  return Math.hypot(dx, dy);
+}
+const dentroDelTramo = ({ lon, lat }) => lon >= TRAMO.oeste && lon <= TRAMO.este && lat <= TRAMO.norte && lat >= TRAMO.sur;
+
+// ================= Estado =================
+const estado = {
+  aterrizaje: null,
+  puntos: [],          // { id, nombre, lon, lat }
+  modo: 'aterrizaje',
+  vista: { lon: (TRAMO.oeste + TRAMO.este) / 2, lat: (TRAMO.norte + TRAMO.sur) / 2, z: 12 },
+  rutaCalculada: null,
+};
+let siguienteId = 1;
+const $ = (id) => document.getElementById(id);
+
+// ================= Mapa =================
+const mapa = $('mapa');
+const caches = { ctx: new Map(), hirise: new Map() };
+
+function encuadreInicial() {
+  const { clientWidth: w, clientHeight: h } = mapa;
+  for (let z = 15; z >= 9; z--) {
+    const [x0, y0] = aPixel(TRAMO.oeste, TRAMO.norte, z);
+    const [x1, y1] = aPixel(TRAMO.este, TRAMO.sur, z);
+    if (x1 - x0 <= w * 0.92 && y1 - y0 <= h * 0.92) { estado.vista.z = z; return; }
+  }
+}
+
+function esquina() {
+  const { lon, lat, z } = estado.vista;
+  const [cx, cy] = aPixel(lon, lat, z);
+  return [cx - mapa.clientWidth / 2, cy - mapa.clientHeight / 2];
+}
+const aPantalla = (lon, lat) => { const [x, y] = aPixel(lon, lat, estado.vista.z); const [ix, iy] = esquina(); return [x - ix, y - iy]; };
+
+function dibujarCapa(clave) {
+  const capa = CAPAS[clave], cont = $(capa.el), cache = caches[clave];
+  const z = estado.vista.z;
+  const activa = $(clave === 'ctx' ? 'capaCtx' : 'capaHirise').checked && z >= (capa.zMin ?? 0);
+  const zTeselas = Math.min(z, capa.zMax);
+  if (!activa) { cont.replaceChildren(); cache.clear(); return; }
+
+  // si el zoom pasa el máximo de la capa, se agrandan las teselas del último nivel
+  const factor = 2 ** (z - zTeselas);
+  const [ix, iy] = esquina();
+  const tam = TESELA * factor;
+  const c0 = Math.floor(ix / tam), c1 = Math.floor((ix + mapa.clientWidth) / tam);
+  const f0 = Math.floor(iy / tam), f1 = Math.floor((iy + mapa.clientHeight) / tam);
+  const visibles = new Set();
+  for (let f = f0; f <= f1; f++) {
+    for (let c = c0; c <= c1; c++) {
+      const clave2 = `${zTeselas}/${f}/${c}`;
+      visibles.add(clave2);
+      let img = cache.get(clave2);
+      if (!img) {
+        img = new Image();
+        img.alt = '';
+        img.src = urlTesela(capa.id, zTeselas, f, c);
+        img.onerror = () => { img.style.visibility = 'hidden'; };
+        cont.appendChild(img);
+        cache.set(clave2, img);
+      }
+      img.style.width = img.style.height = `${tam}px`;
+      img.style.left = `${c * tam - ix}px`;
+      img.style.top = `${f * tam - iy}px`;
+    }
+  }
+  cache.forEach((img, k) => { if (!visibles.has(k)) { img.remove(); cache.delete(k); } });
+}
+
+function crearPin(tipo, etiqueta, texto) {
+  const g = document.createElementNS(SVG, 'g');
+  if (tipo === 'aterrizaje') {
+    g.innerHTML = `<path d="M0 0 L-9 -14 A12 12 0 1 1 9 -14 Z" style="fill: var(--base); stroke: #0d1b2a; stroke-width: 2"></path>
+      <rect x="-5" y="-27" width="10" height="10" rx="2" style="fill: #0d1b2a"></rect>`;
+  } else {
+    g.innerHTML = `<path d="M0 0 L-9 -14 A12 12 0 1 1 9 -14 Z" style="fill: var(--punto); stroke: #2a1d0a; stroke-width: 2"></path>
+      <text x="0" y="-17" style="font: 600 12px Inter, sans-serif; fill: #2a1d0a; text-anchor: middle">${etiqueta}</text>`;
+  }
+  const t = document.createElementNS(SVG, 'text');
+  t.setAttribute('x', 16); t.setAttribute('y', -16); t.setAttribute('class', 'etiqueta-pin');
+  t.textContent = texto;
+  g.appendChild(t);
+  return g;
+}
+
+function secuencia() {
+  const lista = [];
+  if (estado.aterrizaje) lista.push({ ...estado.aterrizaje, nombre: 'Aterrizaje' });
+  lista.push(...estado.puntos);
+  if (estado.aterrizaje && estado.puntos.length && $('volver').checked) lista.push({ ...estado.aterrizaje, nombre: 'Aterrizaje' });
+  return lista;
+}
+
+function dibujarSuperpuesto() {
+  const w = mapa.clientWidth, h = mapa.clientHeight;
+  const [x0, y0] = aPantalla(TRAMO.oeste, TRAMO.norte);
+  const [x1, y1] = aPantalla(TRAMO.este, TRAMO.sur);
+  $('bordeTramo').setAttribute('x', x0); $('bordeTramo').setAttribute('y', y0);
+  $('bordeTramo').setAttribute('width', x1 - x0); $('bordeTramo').setAttribute('height', y1 - y0);
+  $('fueraTramo').setAttribute('d', `M0 0 H${w} V${h} H0 Z M${x0} ${y0} H${x1} V${y1} H${x0} Z`);
+
+  const pts = (lista) => lista.map((p) => aPantalla(p.lon, p.lat).map((n) => n.toFixed(1)).join(',')).join(' ');
+  const sec = secuencia();
+  $('lineaRuta').setAttribute('points', estado.rutaCalculada ? '' : pts(sec));
+  $('lineaCalculada').setAttribute('points', estado.rutaCalculada ? pts(estado.rutaCalculada) : '');
+
+  const pines = $('pines');
+  pines.replaceChildren();
+  estado.puntos.forEach((p, i) => {
+    const g = crearPin('punto', i + 1, p.nombre);
+    const [x, y] = aPantalla(p.lon, p.lat);
+    g.setAttribute('transform', `translate(${x} ${y})`);
+    pines.appendChild(g);
+  });
+  if (estado.aterrizaje) {
+    const g = crearPin('aterrizaje', '', 'Aterrizaje');
+    const [x, y] = aPantalla(estado.aterrizaje.lon, estado.aterrizaje.lat);
+    g.setAttribute('transform', `translate(${x} ${y})`);
+    pines.appendChild(g);
+  }
+
+  // escala
+  const mpp = rad(grados(estado.vista.z) / TESELA) * RADIO_MARTE;
+  const metros = [50, 100, 200, 500, 1000, 2000, 5000, 10000].find((m) => m / mpp >= 80) ?? 10000;
+  $('escalaBarra').style.width = `${metros / mpp}px`;
+  $('escalaTexto').textContent = metros >= 1000 ? `${metros / 1000} km` : `${metros} m`;
+}
+
+function dibujarMapa() {
+  dibujarCapa('ctx');
+  dibujarCapa('hirise');
+  dibujarSuperpuesto();
+}
+
+// ---- interacción: arrastrar, clic y rueda ----
+let arrastre = null;
+mapa.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.flotante')) return;
+  arrastre = { x: e.clientX, y: e.clientY, movio: false, inicio: aPixel(estado.vista.lon, estado.vista.lat, estado.vista.z) };
+  mapa.setPointerCapture(e.pointerId);
+});
+mapa.addEventListener('pointermove', (e) => {
+  const r = mapa.getBoundingClientRect();
+  const [ix, iy] = esquina();
+  const [lon, lat] = aGrados(ix + e.clientX - r.left, iy + e.clientY - r.top, estado.vista.z);
+  $('cursor').textContent = `${Math.abs(lat).toFixed(4)}° S  ${lon.toFixed(4)}° E`;
+  if (!arrastre) return;
+  const dx = e.clientX - arrastre.x, dy = e.clientY - arrastre.y;
+  if (!arrastre.movio && Math.hypot(dx, dy) < 5) return;
+  arrastre.movio = true;
+  mapa.classList.add('arrastrando');
+  [estado.vista.lon, estado.vista.lat] = aGrados(arrastre.inicio[0] - dx, arrastre.inicio[1] - dy, estado.vista.z);
+  dibujarMapa();
+});
+mapa.addEventListener('pointerup', (e) => {
+  if (!arrastre) return;
+  const fueClic = !arrastre.movio;
+  arrastre = null;
+  mapa.classList.remove('arrastrando');
+  if (!fueClic || e.target.closest('.flotante')) return;
+  const r = mapa.getBoundingClientRect();
+  const [ix, iy] = esquina();
+  const [lon, lat] = aGrados(ix + e.clientX - r.left, iy + e.clientY - r.top, estado.vista.z);
+  marcar({ lon: +lon.toFixed(5), lat: +lat.toFixed(5) });
+});
+mapa.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = mapa.getBoundingClientRect();
+  zoomEn(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+
+function zoomEn(paso, sx = mapa.clientWidth / 2, sy = mapa.clientHeight / 2) {
+  const z = estado.vista.z, nz = Math.min(17, Math.max(10, z + paso));
+  if (nz === z) return;
+  const [ix, iy] = esquina();
+  const [lon, lat] = aGrados(ix + sx, iy + sy, z); // el punto bajo el cursor queda fijo
+  const [px, py] = aPixel(lon, lat, nz);
+  [estado.vista.lon, estado.vista.lat] = aGrados(px - sx + mapa.clientWidth / 2, py - sy + mapa.clientHeight / 2, nz);
+  estado.vista.z = nz;
+  dibujarMapa();
+}
+$('btnAcercar').addEventListener('click', () => zoomEn(1));
+$('btnAlejar').addEventListener('click', () => zoomEn(-1));
+
+// ================= Acciones =================
+let temporizadorAviso;
+function avisar(texto) {
+  $('aviso').textContent = texto;
+  $('aviso').classList.add('visible');
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => $('aviso').classList.remove('visible'), 2600);
+}
+
+function cambiarModo(modo) {
+  estado.modo = modo;
+  $('modoAterrizaje').setAttribute('aria-pressed', String(modo === 'aterrizaje'));
+  $('modoPunto').setAttribute('aria-pressed', String(modo === 'punto'));
+}
+
+function marcar(p) {
+  if (!dentroDelTramo(p)) { avisar('Ese punto está fuera del tramo de la demo.'); return; }
+  if (estado.modo === 'aterrizaje') {
+    estado.aterrizaje = p;
+    cambiarModo('punto');
+  } else {
+    if (estado.puntos.length >= MAX_PUNTOS) { avisar(`Máximo ${MAX_PUNTOS} puntos a visitar. Quita uno para agregar otro.`); return; }
+    estado.puntos.push({ id: siguienteId, nombre: `Punto ${siguienteId}`, ...p });
+    siguienteId++;
+  }
+  rutaCambio();
+}
+
+function rutaCambio() {
+  estado.rutaCalculada = null;
+  $('resultado').hidden = true;
+  $('btnComenzar').hidden = true;
+  $('errorRuta').hidden = true;
+  render();
+}
+
+function leerCoordenadas(idLon, idLat) {
+  const lon = parseFloat($(idLon).value), lat = -Math.abs(parseFloat($(idLat).value));
+  if (Number.isNaN(lon) || Number.isNaN(lat)) return { error: 'Escribe la longitud y la latitud.' };
+  const p = { lon, lat };
+  if (!dentroDelTramo(p)) return { error: 'Fuera del tramo: longitud 137.30–137.60 y latitud 4.50–4.75.' };
+  return { p };
+}
+
+$('formAterrizaje').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const { p, error } = leerCoordenadas('atLon', 'atLat');
+  if (error) { avisar(error); return; }
+  estado.aterrizaje = p;
+  $('atLon').value = $('atLat').value = '';
+  cambiarModo('punto');
+  rutaCambio();
+});
+
+$('formPunto').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (estado.puntos.length >= MAX_PUNTOS) { avisar(`Máximo ${MAX_PUNTOS} puntos a visitar.`); return; }
+  const { p, error } = leerCoordenadas('ptLon', 'ptLat');
+  if (error) { avisar(error); return; }
+  estado.puntos.push({ id: siguienteId, nombre: $('ptNombre').value.trim() || `Punto ${siguienteId}`, ...p });
+  siguienteId++;
+  $('ptNombre').value = $('ptLon').value = $('ptLat').value = '';
+  rutaCambio();
+});
+
+$('modoAterrizaje').addEventListener('click', () => cambiarModo('aterrizaje'));
+$('modoPunto').addEventListener('click', () => cambiarModo('punto'));
+$('capaCtx').addEventListener('change', dibujarMapa);
+$('capaHirise').addEventListener('change', dibujarMapa);
+$('volver').addEventListener('change', rutaCambio);
+
+$('btnEjemplo').addEventListener('click', () => {
+  estado.aterrizaje = { ...EJEMPLO.aterrizaje };
+  estado.puntos = EJEMPLO.puntos.map((p) => ({ id: siguienteId++, ...p }));
+  cambiarModo('punto');
+  rutaCambio();
+});
+$('btnLimpiar').addEventListener('click', () => {
+  estado.aterrizaje = null;
+  estado.puntos = [];
+  cambiarModo('aterrizaje');
+  rutaCambio();
+});
+
+// Calcular ruta: en la app real es POST /api/rutas (ver Contrato_API.md).
+// Aquí se simula una respuesta en línea recta para ver el diseño.
+$('btnCalcular').addEventListener('click', () => {
+  const btn = $('btnCalcular');
+  btn.disabled = true;
+  btn.textContent = 'Calculando…';
+  setTimeout(() => {
+    const sec = secuencia();
+    const VEL = 1.0;          // m/s con traje (ejemplo)
+    const O2_POR_MIN = 0.25;  // % por minuto (ejemplo)
+    const tramos = sec.slice(1).map((b, i) => {
+      const a = sec[i];
+      const m = distancia(a, b);
+      const min = m / VEL / 60;
+      return { desde: a.nombre, hasta: b.nombre, m, min, o2: min * O2_POR_MIN };
+    });
+    const total = tramos.reduce((s, t) => ({ m: s.m + t.m, min: s.min + t.min, o2: s.o2 + t.o2 }), { m: 0, min: 0, o2: 0 });
+    btn.textContent = 'Calcular ruta';
+    if (total.o2 > 100) {
+      $('errorRuta').textContent = `No alcanza el oxígeno: la ruta necesita ${Math.round(total.o2)} %. Quita o acerca algún punto.`;
+      $('errorRuta').hidden = false;
+      render();
+      return;
+    }
+    estado.rutaCalculada = sec;
+    $('mDistancia').textContent = `${(total.m / 1000).toFixed(2)} km`;
+    $('mDuracion').textContent = `${Math.floor(total.min / 60)} h ${String(Math.round(total.min % 60)).padStart(2, '0')} min`;
+    $('mOxigeno').textContent = `${Math.round(total.o2)} %`;
+    $('mEsfuerzo').textContent = total.m < 3000 ? 'Bajo' : total.m < 8000 ? 'Medio' : 'Alto';
+    $('tablaTramos').replaceChildren(...tramos.map((t, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td></td><td class="num">${(t.m / 1000).toFixed(2)} km</td><td class="num">${Math.round(t.min)} min</td><td class="num">${t.o2.toFixed(1)} %</td>`;
+      tr.firstChild.textContent = `${i + 1}. ${t.desde} → ${t.hasta}`;
+      return tr;
+    }));
+    $('resultado').hidden = false;
+    $('btnComenzar').hidden = false;
+    render();
+  }, 700);
+});
+
+// ================= Panel =================
+function render() {
+  const at = estado.aterrizaje;
+  $('aterrizajeActual').hidden = !at;
+  $('aterrizajeAyuda').textContent = at ? 'Para cambiarlo, elige "Aterrizaje" arriba del mapa y haz clic, o escribe otras coordenadas.' : 'Haz clic en el mapa o escribe las coordenadas.';
+  if (at) $('aterrizajeTexto').textContent = `${Math.abs(at.lat).toFixed(4)}° S  ${at.lon.toFixed(4)}° E`;
+
+  const lista = $('listaPuntos');
+  lista.replaceChildren();
+  if (!estado.puntos.length) {
+    const li = document.createElement('li');
+    li.className = 'lista__vacia';
+    li.textContent = at ? 'Haz clic en el mapa para agregar puntos.' : 'Primero marca el punto de aterrizaje.';
+    lista.appendChild(li);
+  }
+  estado.puntos.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.className = 'punto';
+    li.innerHTML = `
+      <span class="punto__num" aria-hidden="true">${i + 1}</span>
+      <div class="punto__datos">
+        <input type="text" class="punto__nombre" aria-label="Nombre del punto ${i + 1}">
+        <span class="punto__coords mono">${Math.abs(p.lat).toFixed(4)}° S  ${p.lon.toFixed(4)}° E</span>
+      </div>
+      <div class="punto__botones">
+        <button type="button" class="boton--icono boton--texto" data-accion="subir" aria-label="Subir ${p.nombre}" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="boton--icono boton--texto" data-accion="bajar" aria-label="Bajar ${p.nombre}" ${i === estado.puntos.length - 1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="boton--icono boton--texto" data-accion="quitar" aria-label="Quitar ${p.nombre}">✕</button>
+      </div>`;
+    const input = li.querySelector('input');
+    input.value = p.nombre;
+    input.addEventListener('change', () => { p.nombre = input.value.trim() || `Punto ${p.id}`; render(); });
+    li.querySelectorAll('[data-accion]').forEach((b) => b.addEventListener('click', () => {
+      const a = b.dataset.accion, lista = estado.puntos;
+      if (a === 'quitar') lista.splice(i, 1);
+      if (a === 'subir') [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]];
+      if (a === 'bajar') [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]];
+      rutaCambio();
+    }));
+    lista.appendChild(li);
+  });
+
+  const lleno = estado.puntos.length >= MAX_PUNTOS;
+  $('contador').textContent = `${estado.puntos.length} de ${MAX_PUNTOS}`;
+  $('contador').classList.toggle('lleno', lleno);
+  $('formPunto').querySelectorAll('input, button').forEach((el) => { el.disabled = lleno; });
+  if (lleno) {
+    const li = document.createElement('li');
+    li.className = 'lista__vacia';
+    li.textContent = `Llegaste al máximo de ${MAX_PUNTOS} puntos.`;
+    lista.appendChild(li);
+  }
+
+  $('btnCalcular').disabled = !(at && estado.puntos.length);
+  dibujarMapa();
+}
+
+window.addEventListener('resize', dibujarMapa);
+encuadreInicial();
+render();
+</script>
+</body>
+</html>

@@ -1,24 +1,18 @@
-import { useSimulacion } from './ui/useSimulacion'
-import { useAlertas } from './ui/alertas/useAlertas'
-import { BarraSuperior } from './ui/BarraSuperior'
-import { Alertas } from './ui/alertas/Alertas'
+import { useState } from 'react'
+import { Planificacion } from './planificacion/Planificacion'
+import { Monitoreo } from './monitoreo/Monitoreo'
 
+// Dos fases: primero se prepara el viaje y después se monitorea la caminata.
 export default function App() {
-  const { estado, acciones } = useSimulacion()
-  const { alertas, cerrar } = useAlertas(estado)
+  const [ruta, setRuta] = useState(null)
 
   return (
     <div className="app">
-      <BarraSuperior estado={estado} acciones={acciones} />
-
-      <main className="contenido">
-        {/* El mapa lo monta el otro equipo (src/map/ en martian-map). */}
-        <div id="map" className="mapa">
-          <p>Aquí va el mapa</p>
-        </div>
-
-        <Alertas alertas={alertas} onCerrar={cerrar} />
-      </main>
+      {ruta ? (
+        <Monitoreo ruta={ruta} />
+      ) : (
+        <Planificacion onComenzar={setRuta} />
+      )}
     </div>
   )
 }
