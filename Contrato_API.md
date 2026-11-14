@@ -1,6 +1,6 @@
 # Contrato entre la interfaz y el backend
 
-**Estado:** propuesta de la interfaz. Hay que confirmarla con el equipo del backend.
+**Estado:** propuesta original de la interfaz. El equipo del mapa ya expone su propia API (`martian-map`, rama `mapa-nacho-marti`, `docs/API.md`) con otro formato. La interfaz se adapta a ella en `src/api/cliente.js` (ver el README). De esta propuesta sigue pendiente **el monitoreo** (`POST /api/monitoreo`), que todavía no existe y se simula con datos falsos.
 **Zona de la demo:** Cráter Gale, 137.30–137.60° E y 4.50–4.75° S, con los datos de Mars Trek: *MRO CTX, Gale Crater Mosaic* y *MRO HiRISE, Gale Crater DEM*.
 
 Coordenadas siempre en grados decimales: `lon` este positivo y `lat` sur negativo.

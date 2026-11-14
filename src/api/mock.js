@@ -33,6 +33,12 @@ const CAPAS = [
   },
 ]
 
+// Para que las alertas falsas del monitoreo funcionen también con rutas
+// calculadas por el backend real.
+export function registrarRuta(idRuta, aterrizaje) {
+  rutas.set(idRuta, { aterrizaje })
+}
+
 export async function obtenerCapas() {
   await esperar(300)
   return CAPAS
@@ -80,6 +86,7 @@ export async function planificarRuta({ aterrizaje, puntos, volver = true }) {
       pendienteMaxGrados: null,
     },
     tramos,
+    estadoAnalisis: 'analyzed',
   }
 }
 

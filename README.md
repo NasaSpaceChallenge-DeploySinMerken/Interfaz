@@ -18,11 +18,31 @@ Abre `http://localhost:5173`. Necesita internet: las imágenes del mapa vienen d
 1. **Preparar el viaje:** marca el aterrizaje y hasta 6 puntos con clics en el mapa (o "Cargar ejemplo") y pulsa "Calcular ruta".
 2. **Caminata:** "Comenzar caminata" abre el HUD. El mapa sigue al astronauta y llegan las alertas del backend cada segundo.
 
-Sin configurar nada usa un **backend falso** (`src/api/mock.js`): rutas en línea recta, métricas y alertas de ejemplo. Para usar el real, crear `.env.local` con:
+Sin configurar nada usa un **backend falso** (`src/api/mock.js`): rutas en línea recta, métricas y alertas de ejemplo.
 
+### Con la API del equipo del mapa
+
+Su API vive en el repo `martian-map` (rama `mapa-nacho-marti`, `server/index.js`, contrato en su `docs/API.md`).
+
+```bash
+# en martian-map
+npm install
+npm run api          # http://localhost:3000
+
+# en Interfaz: crear .env.local con
+VITE_API_URL=http://localhost:3000
+# y reiniciar npm run dev
 ```
-VITE_API_URL=http://localhost:8000
-```
+
+Qué se usa de su API y qué sigue siendo falso (todo se traduce en `src/api/cliente.js`):
+
+| Parte | Origen |
+| --- | --- |
+| Calcular ruta | `POST /api/routes`: valida que los puntos estén en la zona y con elevación, y devuelve la distancia y la elevación. |
+| Errores de la ruta | `OUT_OF_SPACE` y `NO_DATA`: se muestran con el nombre del punto y el pin en rojo. |
+| Tiempo, oxígeno, esfuerzo y pendiente | Llegan con el análisis del equipo 3. La interfaz consulta `GET /api/routes/:id` cada 3 s y los muestra cuando llegan. |
+| Capas del mapa | Por ahora, teselas de Mars Trek. Las capas de su API son GeoTIFF para OpenLayers y se usarán al integrar su mapa. |
+| Monitoreo y alertas | **Falso**, hasta que el otro equipo exponga su endpoint. |
 
 ## Estructura
 

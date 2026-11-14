@@ -15,7 +15,8 @@ function Pin({ x, y, color, borde, children, etiqueta }) {
   )
 }
 
-export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, modo, onModo, onMarcar, aviso }) {
+export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, modo, onModo, onMarcar, aviso, idsConError = [] }) {
+  const conError = (id) => idsConError.includes(id)
   const [vista, setVista] = useState(null) // null: encuadra el tramo
   const [cursor, setCursor] = useState(null)
 
@@ -57,7 +58,7 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, mod
               {puntos.map((p, i) => {
                 const [x, y] = proyectar(p.lon, p.lat)
                 return (
-                  <Pin key={p.id} x={x} y={y} color="var(--punto)" borde="#2a1d0a" etiqueta={p.nombre}>
+                  <Pin key={p.id} x={x} y={y} color={conError(p.id) ? 'var(--critico)' : 'var(--punto)'} borde="#2a1d0a" etiqueta={p.nombre}>
                     <text x="0" y="-17" className="pin__num">{i + 1}</text>
                   </Pin>
                 )
@@ -65,7 +66,7 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, mod
               {aterrizaje && (() => {
                 const [x, y] = proyectar(aterrizaje.lon, aterrizaje.lat)
                 return (
-                  <Pin x={x} y={y} color="var(--base)" borde="#0d1b2a" etiqueta="Aterrizaje">
+                  <Pin x={x} y={y} color={conError('aterrizaje') ? 'var(--critico)' : 'var(--base)'} borde="#0d1b2a" etiqueta="Aterrizaje">
                     <rect x="-5" y="-27" width="10" height="10" rx="2" style={{ fill: '#0d1b2a' }} />
                   </Pin>
                 )

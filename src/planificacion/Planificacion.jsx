@@ -6,7 +6,7 @@
 // 4. "Comenzar caminata" pasa a la fase 2.
 
 import { useEffect, useRef, useState } from 'react'
-import { obtenerCapas, planificarRuta } from '../api/cliente'
+import { obtenerCapas, obtenerRuta, planificarRuta, usaBackendFalso } from '../api/cliente'
 import { EJEMPLO, MAX_PUNTOS, TRAMO } from '../datos/gale'
 import { dentroDe, formatearCoords } from '../mapa/geo'
 import { SelectorCapas } from './SelectorCapas'
@@ -27,6 +27,7 @@ export function Planificacion({ onComenzar }) {
 
   const [resultado, setResultado] = useState(null)
   const [errorRuta, setErrorRuta] = useState(null)
+  const [idsConError, setIdsConError] = useState([])
   const [calculando, setCalculando] = useState(false)
 
   const [aviso, setAviso] = useState(null)
@@ -39,6 +40,25 @@ export function Planificacion({ onComenzar }) {
       .catch((e) => setErrorCapas(e.message))
   }, [])
 
+  // con la API real, el análisis del equipo 3 llega después: se consulta cada 3 s
+  const idRuta = resultado?.idRuta
+  const esperandoAnalisis = !usaBackendFalso && resultado && resultado.estadoAnalisis !== 'analyzed'
+  useEffect(() => {
+    if (!esperandoAnalisis) return
+    const inicio = { id: 'aterrizaje', nombre: 'Aterrizaje', ...aterrizaje }
+    const secuencia = [inicio, ...puntos, ...(volver ? [inicio] : [])]
+    const id = setInterval(async () => {
+      try {
+        const r = await obtenerRuta(idRuta, secuencia)
+        if (r) setResultado(r)
+      } catch {
+        // se reintenta en la próxima vuelta
+      }
+    }, 3000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idRuta, esperandoAnalisis])
+
   function avisar(texto) {
     setAviso(texto)
     clearTimeout(temporizador.current)
@@ -49,6 +69,7 @@ export function Planificacion({ onComenzar }) {
   function cambio() {
     setResultado(null)
     setErrorRuta(null)
+    setIdsConError([])
   }
 
   function nuevoPunto(p, nombre) {
@@ -100,10 +121,12 @@ export function Planificacion({ onComenzar }) {
   async function calcular() {
     setCalculando(true)
     setErrorRuta(null)
+    setIdsConError([])
     try {
       setResultado(await planificarRuta({ aterrizaje, puntos, volver }))
     } catch (e) {
       setErrorRuta(e.message)
+      setIdsConError(e.ids ?? [])
     } finally {
       setCalculando(false)
     }
@@ -205,6 +228,7 @@ export function Planificacion({ onComenzar }) {
         onModo={setModo}
         onMarcar={marcarEnMapa}
         aviso={aviso}
+        idsConError={idsConError}
       />
     </div>
   )
