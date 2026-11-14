@@ -5,6 +5,7 @@
 //   actual: distancia, tiempo y pendiente del tramo hacia la próxima parada.
 
 import { formatearDistancia } from '../mapa/geo'
+import { colorSalida } from '../mapa/colores'
 
 const duracion = (min) => (min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min` : `${min} min`)
 const gramos = (g) => (g == null ? '—' : `${Math.round(g)} g`)
@@ -47,6 +48,7 @@ export function PanelViaje({ metricas, error, salida, salidas }) {
   return (
     <section className="panel viaje" aria-label="Lo que falta del viaje">
       <span className="etiqueta">
+        {salidas > 1 && <span className="tramos__punto" style={{ background: colorSalida(salida - 1) }} aria-hidden="true" />}
         Lo que falta{salidas > 1 ? ` de la salida ${salida} de ${salidas}` : ''} · backend 2
       </span>
       {error && <p className="viaje__error">{error}</p>}

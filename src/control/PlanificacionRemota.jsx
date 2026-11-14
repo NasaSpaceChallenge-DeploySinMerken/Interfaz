@@ -27,6 +27,7 @@ export function PlanificacionRemota({ estado, enviar }) {
           puntos={puntos}
           volver={volver}
           ruta={resultado?.ruta}
+          rutasSalidas={resultado?.rutasSalidas}
           modo={modo}
           onModo={(m) => plan('modoMarcado', { modo: m })}
           onMarcar={(p) => plan('marcar', { lon: p.lon, lat: p.lat })}

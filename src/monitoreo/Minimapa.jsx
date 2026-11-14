@@ -3,8 +3,9 @@
 import { useMemo } from 'react'
 import { MapaTeselas } from '../mapa/MapaTeselas'
 import { bboxDe, formatearCoords } from '../mapa/geo'
+import { colorSalida } from '../mapa/colores'
 
-export function Minimapa({ capas, camino, paradas, aterrizaje, lectura }) {
+export function Minimapa({ capas, camino, rutasSalidas, paradas, aterrizaje, lectura }) {
   const encuadre = useMemo(() => bboxDe(camino, 0.004), [camino])
 
   return (
@@ -18,7 +19,11 @@ export function Minimapa({ capas, camino, paradas, aterrizaje, lectura }) {
             const [bx, by] = proyectar(aterrizaje.lon, aterrizaje.lat)
             return (
               <>
-                <polyline points={pts(camino)} className="mini-ruta" />
+                {rutasSalidas
+                  ? rutasSalidas.map((r, i) => (
+                      <polyline key={i} points={pts(r.map(([lon, lat]) => ({ lon, lat })))} className="mini-ruta" style={{ stroke: colorSalida(i) }} />
+                    ))
+                  : <polyline points={pts(camino)} className="mini-ruta" />}
                 <polyline points={pts(hecho)} className="mini-recorrido" />
                 {paradas.filter((p) => p.id !== 'aterrizaje').map((p) => {
                   const [x, y] = proyectar(p.lon, p.lat)

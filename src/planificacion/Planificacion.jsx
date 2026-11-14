@@ -303,6 +303,7 @@ export function Planificacion({ onComenzar }) {
         puntos={puntos}
         volver={volver}
         ruta={resultado?.ruta}
+        rutasSalidas={resultado?.rutasSalidas}
         modo={modo}
         onModo={setModo}
         onMarcar={marcarEnMapa}

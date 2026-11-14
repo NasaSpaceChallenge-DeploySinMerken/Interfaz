@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { MapaTeselas } from '../mapa/MapaTeselas'
 import { escala, formatearCoords } from '../mapa/geo'
 import { TRAMO } from '../datos/gale'
+import { colorSalida } from '../mapa/colores'
 
 function Pin({ x, y, color, borde, children, etiqueta }) {
   return (
@@ -15,7 +16,7 @@ function Pin({ x, y, color, borde, children, etiqueta }) {
   )
 }
 
-export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, modo, onModo, onMarcar, aviso, idsConError = [] }) {
+export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rutasSalidas, modo, onModo, onMarcar, aviso, idsConError = [] }) {
   const conError = (id) => idsConError.includes(id)
   const [vista, setVista] = useState(null) // null: encuadra el tramo
   const [cursor, setCursor] = useState(null)
@@ -52,9 +53,14 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, mod
             <>
               <path d={`M0 0 H${tam.ancho} V${tam.alto} H0 Z M${x0} ${y0} H${x1} V${y1} H${x0} Z`} className="fuera-tramo" />
               <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} className="borde-tramo" />
-              {lineaRuta
-                ? <polyline points={puntosSvg(lineaRuta)} className="linea-ruta" />
-                : <polyline points={puntosSvg(secuencia)} className="linea-borrador" />}
+              {rutasSalidas
+                // varias salidas: cada una con su color
+                ? rutasSalidas.map((r, i) => (
+                    <polyline key={i} points={puntosSvg(r.map(([lon, lat]) => ({ lon, lat })))} className="linea-ruta" style={{ stroke: colorSalida(i) }} />
+                  ))
+                : lineaRuta
+                  ? <polyline points={puntosSvg(lineaRuta)} className="linea-ruta" />
+                  : <polyline points={puntosSvg(secuencia)} className="linea-borrador" />}
               {puntos.map((p, i) => {
                 const [x, y] = proyectar(p.lon, p.lat)
                 return (
@@ -86,6 +92,8 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, mod
         </button>
       </div>
 
+      {rutasSalidas && <LeyendaSalidas cantidad={rutasSalidas.length} />}
+
       <div className={`flotante aviso ${aviso ? 'visible' : ''}`} role="status">{aviso}</div>
 
       <div className="flotante barra-mapa">
@@ -107,5 +115,19 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, mod
         <button type="button" onClick={() => zoomBoton(-1)} aria-label="Alejar" disabled={!vista}>−</button>
       </div>
     </main>
+  )
+}
+
+// Leyenda de colores cuando el viaje tiene varias salidas.
+export function LeyendaSalidas({ cantidad, className = '' }) {
+  return (
+    <ul className={`flotante leyenda-salidas ${className}`} aria-label="Salidas del viaje">
+      {Array.from({ length: cantidad }, (_, i) => (
+        <li key={i}>
+          <span className="leyenda-salidas__color" style={{ background: colorSalida(i) }} aria-hidden="true" />
+          Salida {i + 1}
+        </li>
+      ))}
+    </ul>
   )
 }

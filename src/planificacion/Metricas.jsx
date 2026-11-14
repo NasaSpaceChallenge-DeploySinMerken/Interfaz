@@ -6,6 +6,8 @@
 // - 'mapa': backend 1 con /api/routes: distancia y elevación; el resto llega con el análisis.
 // - 'mock': backend falso, valores de ejemplo.
 
+import { colorSalida } from '../mapa/colores'
+
 const ESFUERZO = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' }
 const ESTADO = {
   validated: 'Ruta validada. Esperando el análisis del equipo 3…',
@@ -88,7 +90,12 @@ export function Metricas({ resultado, nombres }) {
           {tramos.map((t, i) => (
             <tr key={i}>
               <td>
-                {m.salidas > 1 && t.salida != null && <span className="tramos__salida">Salida {t.salida + 1}</span>}
+                {m.salidas > 1 && t.salida != null && (
+                  <span className="tramos__salida" style={{ color: colorSalida(t.salida) }}>
+                    <span className="tramos__punto" style={{ background: colorSalida(t.salida) }} aria-hidden="true" />
+                    Salida {t.salida + 1}
+                  </span>
+                )}
                 {i + 1}. {nombres[t.desde] ?? t.desde} → {nombres[t.hasta] ?? t.hasta}
               </td>
               <td className="num">{km(t.distanciaM)}</td>

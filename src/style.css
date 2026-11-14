@@ -500,3 +500,11 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .alerta--sistema { border-color: rgba(108, 182, 255, 0.5); }
 .alerta--sistema .alerta__nivel { color: var(--base); }
 .alerta__accion { margin-top: 8px; align-self: flex-start; height: 36px; }
+
+/* Varias salidas: leyenda de colores */
+.leyenda-salidas { left: 16px; top: 72px; margin: 0; padding: 8px 12px; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.leyenda-salidas li { display: flex; align-items: center; gap: 8px; }
+.leyenda-salidas__color { width: 22px; height: 5px; border-radius: 3px; }
+.leyenda-salidas--hud { position: static; flex-direction: row; flex-wrap: wrap; gap: 8px 14px; }
+.tramos__punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.control__mapa .leyenda-salidas { top: 56px; left: 8px; }

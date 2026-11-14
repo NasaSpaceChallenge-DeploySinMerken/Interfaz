@@ -13,6 +13,8 @@ import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
 import { Cruceta } from './Cruceta'
 import { PanelOxigeno, PanelViaje } from './PanelViaje'
+import { colorSalida } from '../mapa/colores'
+import { LeyendaSalidas } from '../planificacion/MapaPlanificacion'
 
 
 export function Monitoreo({ viaje, onSalir }) {
@@ -41,6 +43,7 @@ export function Monitoreo({ viaje, onSalir }) {
   const [z, setZ] = useState(15)
 
   const { camino, paradas } = sensores
+  const rutasSalidas = viaje.respuesta.rutasSalidas ?? null
   const e = escala(z, 90)
   const destino = paradas[paradas.length - 1]
 
@@ -52,7 +55,12 @@ export function Monitoreo({ viaje, onSalir }) {
           const [bx, by] = proyectar(viaje.aterrizaje.lon, viaje.aterrizaje.lat)
           return (
             <>
-              <polyline points={pts(camino)} className="hud-pendiente" />
+              {rutasSalidas
+                // varias salidas: cada una con su color
+                ? rutasSalidas.map((r, i) => (
+                    <polyline key={i} points={pts(r.map(([lon, lat]) => ({ lon, lat })))} className="hud-pendiente" style={{ stroke: colorSalida(i) }} />
+                  ))
+                : <polyline points={pts(camino)} className="hud-pendiente" />}
               <polyline points={pts(lectura.rastro)} className="hud-recorrido" />
               {viaje.puntos.map((p, i) => {
                 const [x, y] = proyectar(p.lon, p.lat)
@@ -83,7 +91,7 @@ export function Monitoreo({ viaje, onSalir }) {
         <Alertas alertas={alertas} onCerrar={cerrar} avisos={avisos} />
 
         <div className="lateral">
-          <Minimapa capas={viaje.capas} camino={camino} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
+          <Minimapa capas={viaje.capas} camino={camino} rutasSalidas={rutasSalidas} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
           <section className="panel objetivo" aria-label="Recorrido">
             <span className="etiqueta">Destino</span>
             <span className="objetivo__nombre">{destino?.nombre ?? '—'}</span>
@@ -92,6 +100,7 @@ export function Monitoreo({ viaje, onSalir }) {
           </section>
           <PanelOxigeno monitoreo={monitoreo} error={errorMonitoreo} />
           <PanelViaje metricas={metricasViaje} error={errorMetricas} salida={lectura.salida} salidas={lectura.salidas} />
+          {rutasSalidas && <LeyendaSalidas cantidad={rutasSalidas.length} className="leyenda-salidas--hud" />}
         </div>
 
         {/* con control remoto conectado, la cruceta no se muestra para no tapar la demo */}

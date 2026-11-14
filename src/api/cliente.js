@@ -192,6 +192,8 @@ function adaptarPlan(plan, puntos) {
     // idRuta para POST /api/monitoreo; null si el análisis no la puede monitorear
     idMonitoreo: plan.idRuta ?? null,
     ruta: { type: 'LineString', coordinates: plan.route },
+    // con varias salidas, la geometría de cada una (para dibujarlas con colores distintos)
+    rutasSalidas: salidas > 1 && plan.trips?.length > 1 ? plan.trips.map((t) => t.route) : null,
     metricas: {
       distanciaM: Math.round(plan.summary.distance_m),
       duracionMin: Math.round(plan.summary.total_time_min),
