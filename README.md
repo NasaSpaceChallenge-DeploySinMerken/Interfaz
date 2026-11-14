@@ -64,6 +64,17 @@ VITE_API_URL=http://localhost:3000
 VITE_ANALISIS_URL=http://52.6.216.161:8000
 ```
 
+### Publicar con el servidor propio de la interfaz (recomendado)
+
+La interfaz tiene su propio servidor ([servidor/](servidor/README.md)): sirve la página, reenvía los pedidos a los backends y pasa los mensajes del teléfono. Así **funciona el control desde el teléfono en la versión publicada**, y los backends pueden seguir en `http` y por IP. Solo el servidor de la interfaz necesita `https`.
+
+```bash
+npm run build:servidor
+BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 npm start   # http://localhost:8080
+```
+
+Guía para desplegarlo en AWS como servicio: [servidor/README.md](servidor/README.md).
+
 ### Publicar con los backends reales (GitHub Pages + túneles de Cloudflare)
 
 La página publicada (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) es `https`, así que **solo puede usar backends `https`**: el navegador bloquea las llamadas a `http://IP:puerto`. Los backends se exponen por `https` con túneles de Cloudflare.
@@ -222,6 +233,7 @@ src/
     canal.js                  comunicación entre demo y teléfono
     sesion.js                 código de 4 dígitos de cada demo
 mockup/                       maquetas HTML sueltas (referencia de diseño)
+servidor/                     servidor propio: sirve la página, reenvía a los backends y pasa los mensajes del teléfono
 scripts/configurar-backends.sh configura las direcciones https de los backends
 .github/workflows/deploy.yml  publica en GitHub Pages en cada push a main
 ```

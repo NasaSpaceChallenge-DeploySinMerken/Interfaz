@@ -76,6 +76,7 @@ export function useMonitoreo(viaje, onSalir) {
       if (msg.tipo === 'direccion') {
         const hayDireccion = msg.x || msg.y
         remoto.current.direccion = hayDireccion ? { x: msg.x, y: msg.y } : null
+        remoto.current.momentoDireccion = Date.now()
         if (hayDireccion && modoRef.current !== 'manual') cambiarModo('manual')
       }
       if (msg.tipo === 'modo') cambiarModo(msg.modo)
@@ -163,7 +164,10 @@ export function useMonitoreo(viaje, onSalir) {
     let x = 0, y = 0
     teclas.current.forEach((k) => { x += TECLAS[k][0]; y += TECLAS[k][1] })
     if (x || y) return { x, y }
-    return pad.current ?? remoto.current.direccion ?? direccionJoystick()
+    // el control repite la dirección 10 veces por segundo mientras se mueve: si deja
+    // de llegar (por ejemplo, se perdió el aviso de "soltar"), el astronauta se detiene
+    const remotaVigente = Date.now() - (remoto.current.momentoDireccion ?? 0) < 500 ? remoto.current.direccion : null
+    return pad.current ?? remotaVigente ?? direccionJoystick()
   }
 
   function cambiarModo(nuevo) {

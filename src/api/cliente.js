@@ -41,13 +41,22 @@ function limpiar(url) {
   }
   return sinBarra
 }
-const API = limpiar(import.meta.env.VITE_API_URL)
-const ANALISIS = limpiar(import.meta.env.VITE_ANALISIS_URL)
-const MONITOREO = limpiar(import.meta.env.VITE_MONITOREO_URL)
+// Con el servidor propio de la interfaz (npm run build:servidor), todo va al mismo
+// servidor que sirve la página, y él reenvía a los backends (servidor/index.js):
+// /api → backend 1, /analisis → backend 2, /monitoreo → monitoreo.
+export const SERVIDOR_PROPIO = import.meta.env.VITE_SERVIDOR === 'propio'
 
-export const usaBackendFalso = !API
-export const usaMetricasFalsas = !ANALISIS
-export const usaMonitoreoFalso = !MONITOREO
+const API = SERVIDOR_PROPIO ? '' : limpiar(import.meta.env.VITE_API_URL)
+const ANALISIS = SERVIDOR_PROPIO ? '/analisis' : limpiar(import.meta.env.VITE_ANALISIS_URL)
+const MONITOREO = SERVIDOR_PROPIO ? '/monitoreo' : limpiar(import.meta.env.VITE_MONITOREO_URL)
+
+// API puede ser '' (mismo servidor): se compara con null
+export const usaBackendFalso = API == null
+export const usaMetricasFalsas = ANALISIS == null
+export const usaMonitoreoFalso = MONITOREO == null
+
+// el servidor propio responde 503 si ese backend no está configurado allá
+const noConfigurado = (e) => e?.codigo === 'BACKEND_NO_CONFIGURADO' || e?.status === 503
 
 // Más que el límite de 60 s que tiene el backend 1 para el análisis, para que
 // llegue su propio mensaje de error si el análisis se demora.
@@ -287,14 +296,20 @@ export function obtenerCapas() {
 
 // Fase 1: manda el aterrizaje y los puntos a visitar, devuelve la ruta y sus métricas.
 // La ruta la calcula el backend 1 (API del mapa).
-export function planificarRuta(viaje) {
-  if (API) return planificarConMapa(viaje)
-  return mock.planificarRuta(viaje)
+export async function planificarRuta(viaje) {
+  if (API == null) return mock.planificarRuta(viaje)
+  try {
+    return await planificarConMapa(viaje)
+  } catch (e) {
+    // sin backend 1 configurado en el servidor propio: ruta de ejemplo
+    if (SERVIDOR_PROPIO && e?.codigo === 'BACKEND_NO_CONFIGURADO') return mock.planificarRuta(viaje)
+    throw e
+  }
 }
 
 // Fase 1: consulta el estado de una ruta de la API del mapa (para esperar el análisis).
 export async function obtenerRuta(idRuta, secuencia) {
-  if (!API) return null
+  if (API == null) return null
   const { route } = await pedir(API, `/api/routes/${encodeURIComponent(idRuta)}`)
   return adaptarRutaMapa(route, secuencia)
 }
@@ -309,26 +324,34 @@ export async function obtenerMetricasViaje({ posicion, pendientes }) {
     return distanciaKm(aPar(anterior), aPar(p)) * 1000 > 2
   })
   if (!destinos.length) return null
-  if (!ANALISIS) return mock.metricasViaje({ posicion, destinos })
-  const r = await pedir(ANALISIS, '/gale/analyze', {
-    method: 'POST',
-    body: JSON.stringify({
-      points: [aPar(posicion), ...destinos.map(aPar)],
-      settings: { speed_kmh: 2.5, stop_minutes: 0 },
-    }),
-  })
-  return adaptarMetricas(r, destinos)
+  if (ANALISIS == null) return mock.metricasViaje({ posicion, destinos })
+  try {
+    const r = await pedir(ANALISIS, '/gale/analyze', {
+      method: 'POST',
+      body: JSON.stringify({
+        points: [aPar(posicion), ...destinos.map(aPar)],
+        settings: { speed_kmh: 2.5, stop_minutes: 0 },
+      }),
+    })
+    return adaptarMetricas(r, destinos)
+  } catch (e) {
+    // sin backend 2 configurado en el servidor propio: estimación local
+    if (SERVIDOR_PROPIO && noConfigurado(e)) return mock.metricasViaje({ posicion, destinos })
+    throw e
+  }
 }
 
 // Fase 2: manda posición y sensores al backend de monitoreo, devuelve las alertas activas.
 // Sin VITE_MONITOREO_URL, datos falsos.
 export async function enviarMonitoreo({ idRuta, t, posicion, sensores }) {
-  if (!MONITOREO) return mock.enviarMonitoreo({ idRuta, t, posicion, sensores })
+  if (MONITOREO == null) return mock.enviarMonitoreo({ idRuta, t, posicion, sensores })
   const respuesta = await fetch(`${MONITOREO}/api/monitoreo`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idRuta, t, posicion, sensores }),
   })
+  // sin backend de monitoreo configurado en el servidor propio: alertas de ejemplo
+  if (SERVIDOR_PROPIO && respuesta.status === 503) return mock.enviarMonitoreo({ idRuta, t, posicion, sensores })
   if (!respuesta.ok) throw new Error(`El backend de monitoreo respondió ${respuesta.status}`)
   const cuerpo = await respuesta.json()
   return { alertas: cuerpo.alertas ?? [] }

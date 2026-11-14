@@ -21,9 +21,11 @@ function controlRemoto() {
   }
 }
 
-// Al construir (npm run build) la app se publica en GitHub Pages bajo /Interfaz/;
-// npm run preview la sirve igual. En desarrollo (npm run dev), en la raíz.
+// Ruta base de la app:
+// - npm run build (GitHub Pages) y npm run preview: /Interfaz/
+// - npm run build:servidor (servidor propio, VITE_BASE=/): la raíz
+// - npm run dev: la raíz
 export default defineConfig(({ command, isPreview }) => ({
-  base: command === 'build' || isPreview ? '/Interfaz/' : '/',
+  base: process.env.VITE_BASE || (command === 'build' || isPreview ? '/Interfaz/' : '/'),
   plugins: [react(), controlRemoto()],
 }))

@@ -12,6 +12,10 @@ export function EnlaceTelefono({ conectado }) {
   const [red, setRed] = useState(null) // null: cargando; []: sin --host
 
   useEffect(() => {
+    // con el servidor propio, el teléfono abre esta misma dirección pública
+    if (import.meta.env.VITE_SERVIDOR === 'propio') {
+      return setRed([`${window.location.origin}${import.meta.env.BASE_URL}`])
+    }
     // las direcciones de red solo existen con el servidor de desarrollo de Vite
     if (!import.meta.env.DEV) return setRed([])
     fetch('/__direcciones-red')
@@ -37,7 +41,9 @@ export function EnlaceTelefono({ conectado }) {
       <p className="telefono__titulo">Controlar desde el teléfono</p>
       {direccion ? (
         <>
-          <p className="telefono__ayuda">En el teléfono, con la misma Wi-Fi, abre:</p>
+          <p className="telefono__ayuda">
+            {import.meta.env.VITE_SERVIDOR === 'propio' ? 'En el teléfono, abre:' : 'En el teléfono, con la misma Wi-Fi, abre:'}
+          </p>
           <p className="telefono__direccion mono">{direccion}</p>
         </>
       ) : red && !import.meta.env.DEV ? (

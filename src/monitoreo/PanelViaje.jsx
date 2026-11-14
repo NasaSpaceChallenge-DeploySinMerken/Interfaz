@@ -41,7 +41,7 @@ export function PanelViaje({ metricas, error, sensores, salida, salidas }) {
   return (
     <section className="panel viaje" aria-label="Lo que falta del viaje">
       <span className="etiqueta">
-        Lo que falta{salidas > 1 ? ` de la salida ${salida} de ${salidas}` : ''} {usaMetricasFalsas ? '· estimación local' : '· backend 2'}
+        Lo que falta{salidas > 1 ? ` de la salida ${salida} de ${salidas}` : ''} {usaMetricasFalsas || metricas?.fuente === 'mock' ? '· estimación local' : '· backend 2'}
       </span>
       {error && <p className="viaje__error">No hay métricas del backend 2: {error}</p>}
       {!metricas && !error && <p className="viaje__ayuda">Calculando…</p>}

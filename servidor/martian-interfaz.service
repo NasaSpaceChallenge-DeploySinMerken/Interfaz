@@ -1,0 +1,23 @@
+# Servicio systemd del servidor de la interfaz.
+# Instalar (ajustar User y WorkingDirectory si el repo está en otra carpeta):
+#   sudo cp servidor/martian-interfaz.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now martian-interfaz
+# Ver el registro: journalctl -u martian-interfaz -f
+
+[Unit]
+Description=Martian Map - servidor de la interfaz
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/Interfaz
+EnvironmentFile=/etc/martian-interfaz.env
+ExecStart=/usr/bin/env node servidor/index.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
