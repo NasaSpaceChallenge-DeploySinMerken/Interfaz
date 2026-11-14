@@ -7,12 +7,15 @@
 //   las alertas. Si el backend no responde, lo marca sin cortar la caminata.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { enviarMonitoreo } from '../api/cliente'
+import { enviarMonitoreo, obtenerMetricasViaje } from '../api/cliente'
+import { distancia } from '../mapa/geo'
 import { abrirCanal } from '../control/canal'
 import { CODIGO_SESION } from '../control/sesion'
 import { crearSensoresSimulados } from './sensoresSimulados'
 
 const ESPERA_CONTROL_MS = 3000 // sin noticias del control remoto en este tiempo = desconectado
+const CADA_METRICAS_MS = 3000 // cada cuánto se revisa si hay que pedir métricas de viaje
+const MOVIMIENTO_MINIMO_M = 15 // se piden de nuevo solo si el astronauta se movió esto
 
 
 const TECLAS = {
@@ -47,6 +50,8 @@ export function useMonitoreo(viaje, onSalir) {
   const [modo, setModo] = useState('auto')
   const [alertas, setAlertas] = useState([])
   const [sinConexion, setSinConexion] = useState(false)
+  const [metricasViaje, setMetricasViaje] = useState(null)
+  const [errorMetricas, setErrorMetricas] = useState(null)
 
   const velocidadRef = useRef(velocidad)
   velocidadRef.current = velocidad
@@ -60,6 +65,8 @@ export function useMonitoreo(viaje, onSalir) {
   enMarchaRef.current = enMarcha
   const alertasRef = useRef(alertas)
   alertasRef.current = alertas
+  const metricasRef = useRef(metricasViaje)
+  metricasRef.current = metricasViaje
 
   // control remoto: recibe dirección y modo, y le manda el estado 4 veces por segundo
   useEffect(() => {
@@ -94,11 +101,40 @@ export function useMonitoreo(viaje, onSalir) {
         proxima: l.proxima,
         restante: l.restante,
         alertas: alertasRef.current,
+        metricasViaje: metricasRef.current,
         t: l.t,
       })
     }, 250)
     return () => { clearInterval(id); canal.cerrar() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensores])
+
+  // métricas de lo que falta del viaje (backend 2): al empezar, al moverse y al
+  // cambiar de parada; nunca dos pedidos a la vez
+  useEffect(() => {
+    let activo = true
+    let enCurso = false
+    let ultima = null // { posicion, siguiente }
+    const revisar = async () => {
+      const l = sensores.leer()
+      const clave = l.pendientes.map((p) => p.id).join(',')
+      const movido = !ultima || ultima.clave !== clave || distancia(ultima.posicion, l.posicion) >= MOVIMIENTO_MINIMO_M
+      if (enCurso || !movido) return
+      enCurso = true
+      ultima = { posicion: l.posicion, clave }
+      try {
+        const m = await obtenerMetricasViaje({ posicion: l.posicion, pendientes: l.pendientes })
+        if (activo) { setMetricasViaje(m); setErrorMetricas(null) }
+      } catch (e) {
+        if (activo) setErrorMetricas(e.message)
+        ultima = null // se reintenta en la próxima vuelta
+      } finally {
+        enCurso = false
+      }
+    }
+    revisar()
+    const id = setInterval(revisar, CADA_METRICAS_MS)
+    return () => { activo = false; clearInterval(id) }
   }, [sensores])
 
   // teclado (solo en modo manual)
@@ -198,5 +234,5 @@ export function useMonitoreo(viaje, onSalir) {
     moverPad: (direccion) => { pad.current = direccion },
   }
 
-  return { lectura, sensores, alertas, sinConexion, enMarcha, velocidad, modo, controlRemoto, codigoSesion: CODIGO_SESION, acciones }
+  return { lectura, sensores, alertas, sinConexion, metricasViaje, errorMetricas, enMarcha, velocidad, modo, controlRemoto, codigoSesion: CODIGO_SESION, acciones }
 }

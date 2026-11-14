@@ -1,14 +1,20 @@
 // Cliente de los backends.
 //
-// Tres fuentes, cada una con su variable en .env.local (sin ninguna, todo es falso):
+// Cada parte de la app usa un backend, con su variable en .env.local
+// (sin ninguna, todo es falso):
 //
-// - VITE_ANALISIS_URL: servicio de análisis de Javier (rama feat/javier/analisis,
-//   POST /plan). EN DESARROLLO. Si está, calcula la ruta: sigue el terreno, elige el
-//   orden de las visitas y estima tiempo y oxígeno.
-// - VITE_API_URL: API del equipo del mapa (rama mapa-nacho-marti, server/index.js).
-//   Si no hay servicio de análisis, valida la ruta (zona y elevación) con
-//   POST /api/routes y espera el análisis con GET /api/routes/:id.
-// - VITE_MONITOREO_URL: backend de monitoreo (todavía no existe). POST /api/monitoreo.
+// - VITE_API_URL: backend 1, la API del equipo del mapa (martian-map, server/index.js).
+//   CALCULA LA RUTA. Con POST /api/plan (rama feat/mapa-layers), que reenvía al
+//   POST /plan del equipo 3: ruta por el terreno, orden de las visitas, oxígeno,
+//   visitas inalcanzables y varias salidas. Si ese endpoint no existe o no está
+//   configurado, usa el flujo anterior: POST /api/routes (valida zona y
+//   elevación) y GET /api/routes/:id (espera el análisis).
+// - VITE_ANALISIS_URL: backend 2, el servicio de análisis de Javier (rama
+//   feat/javier/analisis). Da las MÉTRICAS DURANTE EL VIAJE: desde la posición
+//   actual hasta el final, POST /gale/analyze (distancia, tiempo, oxígeno,
+//   pendientes y peligros de lo que falta).
+// - VITE_MONITOREO_URL: backend de monitoreo (todavía no existe). POST /api/monitoreo
+//   con sensores y posición, devuelve las alertas.
 //
 // Este archivo traduce el formato de cada backend al que usa la interfaz
 // (Contrato_API.md), así el resto del front no cambia.
@@ -39,8 +45,13 @@ const API = limpiar(import.meta.env.VITE_API_URL)
 const ANALISIS = limpiar(import.meta.env.VITE_ANALISIS_URL)
 const MONITOREO = limpiar(import.meta.env.VITE_MONITOREO_URL)
 
-export const usaBackendFalso = !API && !ANALISIS
+export const usaBackendFalso = !API
+export const usaMetricasFalsas = !ANALISIS
 export const usaMonitoreoFalso = !MONITOREO
+
+// Más que el límite de 60 s que tiene el backend 1 para el análisis, para que
+// llegue su propio mensaje de error si el análisis se demora.
+const ESPERA_MAXIMA_MS = 90000
 
 async function pedir(base, ruta, opciones = {}) {
   let respuesta
@@ -48,9 +59,13 @@ async function pedir(base, ruta, opciones = {}) {
     respuesta = await fetch(`${base}${ruta}`, {
       ...opciones,
       headers: { 'Content-Type': 'application/json', ...opciones.headers },
+      signal: AbortSignal.timeout(ESPERA_MAXIMA_MS),
     })
-  } catch {
-    throw new Error(`No se pudo conectar con el backend (${base}).`)
+  } catch (e) {
+    if (e?.name === 'TimeoutError') {
+      throw new Error(`El backend (${base}) no respondió en ${ESPERA_MAXIMA_MS / 1000} s.`)
+    }
+    throw new Error(`No se pudo conectar con el backend (${base}). Revisa que esté corriendo y que tu red no lo bloquee.`)
   }
   let cuerpo = null
   try {
@@ -118,7 +133,7 @@ function distanciaKm(a, b) {
   return 2 * 3396.19 * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-async function planificarConMapa({ aterrizaje, puntos, volver }) {
+async function planificarConRoutes({ aterrizaje, puntos, volver }) {
   const inicio = { id: 'aterrizaje', nombre: 'Aterrizaje', ...aterrizaje }
   const secuencia = [inicio, ...puntos, ...(volver ? [inicio] : [])]
   try {
@@ -144,45 +159,52 @@ async function planificarConMapa({ aterrizaje, puntos, volver }) {
   }
 }
 
-// ---------------- Servicio de análisis (Javier, en desarrollo) ----------------
+// ---------------- Backend 1: POST /api/plan (análisis del equipo 3) ----------------
 
 const MOTIVOS = {
   sin_camino_en_dem: 'no hay camino transitable en el terreno',
   oxigeno_insuficiente_para_retorno_con_reserva: 'no alcanza el oxígeno para volver con reserva',
 }
 
+// Convierte la respuesta de /plan (formato del equipo 3) al de la interfaz.
 function adaptarPlan(plan, puntos) {
   const idDe = (indice) => (indice == null ? 'aterrizaje' : puntos[indice]?.id ?? `p?${indice}`)
-  const ox = plan.summary.oxygen ?? {}
+  const ox = plan.summary?.oxygen ?? {}
   const tanque = ox.tank_g || null
   const pct = (g) => (tanque && g != null ? +((g / tanque) * 100).toFixed(1) : null)
+  const salidas = plan.trip_count ?? 1
 
   return {
-    fuente: 'analisis',
+    fuente: 'plan',
     idRuta: `plan-${Date.now()}`,
     ruta: { type: 'LineString', coordinates: plan.route },
     metricas: {
       distanciaM: Math.round(plan.summary.distance_m),
       duracionMin: Math.round(plan.summary.total_time_min),
       oxigenoPct: pct(ox.used_g) != null ? Math.round(pct(ox.used_g)) : null,
-      oxigenoDetalle: ox.used_g != null && tanque ? `${Math.round(ox.used_g)} g de ${tanque} g` : null,
+      // con varias salidas el tanque se recarga: el total puede pasar de 100 %
+      oxigenoDetalle: ox.used_g != null && tanque
+        ? `${Math.round(ox.used_g)} g${salidas > 1 ? ` en ${salidas} salidas, tanque de ${tanque} g` : ` de ${tanque} g`}`
+        : null,
       oxigenoAlcanza: ox.enough_with_reserve ?? null,
-      salidas: plan.trip_count ?? 1,
+      salidas,
+      recargas: ox.tank_refills ?? 0,
       esfuerzo: null,
       pendienteMaxGrados: null,
       limitePendienteGrados: plan.grade_limit_degrees ?? null,
     },
-    tramos: plan.legs.map((l) => ({
+    tramos: (plan.legs ?? []).map((l) => ({
       desde: idDe(l.from_index),
       hasta: idDe(l.to_index),
+      salida: l.trip_index ?? null,
       distanciaM: Math.round(l.distance_m),
       duracionMin: Math.round(l.time_min),
       oxigenoPct: pct(l.oxygen_g),
       pendienteMaxGrados: null,
       desnivelM: null,
     })),
-    // el servicio elige el orden: ids de los puntos en el orden de la ruta
-    ordenIds: plan.ordered_visits.map((v) => idDe(v.input_index)),
+    // el análisis elige el orden: ids de los puntos en el orden de la ruta
+    ordenIds: (plan.ordered_visits ?? []).map((v) => idDe(v.input_index)),
     inalcanzables: (plan.unreachable_visits ?? []).map((v) => ({
       id: idDe(v.input_index),
       motivo: MOTIVOS[v.reason] ?? v.reason,
@@ -192,8 +214,8 @@ function adaptarPlan(plan, puntos) {
   }
 }
 
-async function planificarConAnalisis({ aterrizaje, puntos, volver }) {
-  const plan = await pedir(ANALISIS, '/plan', {
+async function planificarConPlan({ aterrizaje, puntos, volver }) {
+  const plan = await pedir(API, '/api/plan', {
     method: 'POST',
     body: JSON.stringify({
       map: 'gale',
@@ -203,12 +225,57 @@ async function planificarConAnalisis({ aterrizaje, puntos, volver }) {
       settings: { speed_kmh: 2.5, stop_minutes_per_visit: 5 },
     }),
   })
-  if (!plan.route || plan.route.length < 2) {
-    throw new Error('El servicio de análisis no encontró ninguna ruta viable para estos puntos.')
-  }
   const resultado = adaptarPlan(plan, puntos)
+
+  // ninguna visita viable: no hay caminata posible
+  if (!plan.trip_count || !plan.route || plan.route.length < 2) {
+    const nombres = new Map(puntos.map((p) => [p.id, p.nombre]))
+    const detalle = resultado.inalcanzables.map((v) => `${nombres.get(v.id) ?? v.id} (${v.motivo})`).join(', ')
+    const error = new Error(`Ninguna visita es alcanzable${detalle ? `: ${detalle}` : ''}.`)
+    error.ids = resultado.inalcanzables.map((v) => v.id)
+    throw error
+  }
+
   mock.registrarRuta(resultado.idRuta, aterrizaje, plan.route) // para las alertas falsas del monitoreo
   return resultado
+}
+
+// Backend 1: primero /api/plan; si no existe (404) o no tiene el análisis
+// configurado (503 NO_ANALYSIS_TARGET), el flujo anterior con /api/routes.
+async function planificarConMapa(viaje) {
+  try {
+    return await planificarConPlan(viaje)
+  } catch (e) {
+    if (e.status === 404 || e.codigo === 'NO_ANALYSIS_TARGET') return planificarConRoutes(viaje)
+    throw e
+  }
+}
+
+// ---------------- Backend 2: métricas durante el viaje (Javier) ----------------
+
+// Junta los segmentos de ida (posición actual → paradas que faltan) en métricas.
+function adaptarMetricas(r, destinos) {
+  const ida = r.segments.filter((t) => t.direction === 'ida')
+  const suma = (campo) => ida.reduce((total, t) => total + (t[campo] ?? 0), 0)
+  const ox = r.summary.oxygen ?? {}
+  const primero = ida[0]
+  return {
+    fuente: 'analisis',
+    restanteM: Math.round(suma('distance_m')),
+    tiempoMin: Math.round(suma('time_min')),
+    oxigenoG: Math.round(suma('oxygen_g')),
+    tanqueG: ox.tank_g ?? 700,
+    reservaG: ox.reserve_g ?? null,
+    pendienteMaxPct: ida.length ? Math.max(...ida.map((t) => t.max_grade_percent ?? 0)) : null,
+    tramoActual: primero && {
+      hacia: destinos[0]?.nombre ?? '—',
+      distanciaM: Math.round(primero.distance_m),
+      pendienteMaxPct: primero.max_grade_percent ?? null,
+      desnivelM: primero.rise_m ?? null,
+      peligros: primero.hazards ?? [],
+    },
+    peligros: ida.flatMap((t, i) => (t.hazards ?? []).map((h) => `${h} hacia ${destinos[i]?.nombre ?? '—'}`)),
+  }
 }
 
 // ---------------- Llamadas que usa la interfaz ----------------
@@ -219,17 +286,38 @@ export function obtenerCapas() {
 }
 
 // Fase 1: manda el aterrizaje y los puntos a visitar, devuelve la ruta y sus métricas.
+// La ruta la calcula el backend 1 (API del mapa).
 export function planificarRuta(viaje) {
-  if (ANALISIS) return planificarConAnalisis(viaje)
   if (API) return planificarConMapa(viaje)
   return mock.planificarRuta(viaje)
 }
 
 // Fase 1: consulta el estado de una ruta de la API del mapa (para esperar el análisis).
 export async function obtenerRuta(idRuta, secuencia) {
-  if (!API || ANALISIS) return null
+  if (!API) return null
   const { route } = await pedir(API, `/api/routes/${encodeURIComponent(idRuta)}`)
   return adaptarRutaMapa(route, secuencia)
+}
+
+// Fase 2: métricas de lo que falta del viaje, desde la posición actual y pasando por
+// las paradas que quedan, en orden (backend 2). Sin VITE_ANALISIS_URL, estimación local.
+export async function obtenerMetricasViaje({ posicion, pendientes }) {
+  // el servicio pide más de 1 m entre puntos seguidos: se quitan las paradas
+  // que están encima de la posición actual
+  const destinos = pendientes.filter((p, i, lista) => {
+    const anterior = i === 0 ? posicion : lista[i - 1]
+    return distanciaKm(aPar(anterior), aPar(p)) * 1000 > 2
+  })
+  if (!destinos.length) return null
+  if (!ANALISIS) return mock.metricasViaje({ posicion, destinos })
+  const r = await pedir(ANALISIS, '/gale/analyze', {
+    method: 'POST',
+    body: JSON.stringify({
+      points: [aPar(posicion), ...destinos.map(aPar)],
+      settings: { speed_kmh: 2.5, stop_minutes: 0 },
+    }),
+  })
+  return adaptarMetricas(r, destinos)
 }
 
 // Fase 2: manda posición y sensores al backend de monitoreo, devuelve las alertas activas.

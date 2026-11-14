@@ -33,14 +33,42 @@ export function crearSensoresSimulados(viaje) {
   for (let i = 1; i < camino.length; i++) acumulado.push(acumulado[i - 1] + distancia(camino[i - 1], camino[i]))
   const total = acumulado[acumulado.length - 1]
 
-  // dónde cae cada punto a visitar sobre la ruta (metros desde el inicio)
-  const verticeMasCercano = (p) => {
-    let mejor = 0, dmin = Infinity
-    camino.forEach((q, i) => { const d = distancia(p, q); if (d < dmin) { dmin = d; mejor = i } })
+  // vértice de la ruta más cercano a p, buscando desde `desde` (la ruta puede
+  // pasar varias veces por el mismo lugar, por ejemplo el aterrizaje)
+  const verticeMasCercano = (p, desde = 0) => {
+    let mejor = desde, dmin = Infinity
+    for (let i = desde; i < camino.length; i++) {
+      const d = distancia(p, camino[i])
+      if (d < dmin) { dmin = d; mejor = i }
+    }
     return mejor
   }
-  const paradas = viaje.puntos.map((p) => ({ ...p, metros: acumulado[verticeMasCercano(p)] }))
-  if (viaje.volver) paradas.push({ id: 'aterrizaje', nombre: 'Aterrizaje', ...viaje.aterrizaje, metros: total })
+
+  // Paradas en el orden de la caminata. Si el plan trae tramos (con varias
+  // salidas), se siguen sus destinos, incluidas las vueltas intermedias al
+  // aterrizaje para recargar oxígeno. Si no, los puntos y la vuelta final.
+  const porId = new Map(viaje.puntos.map((p) => [p.id, p]))
+  const destinosTramos = viaje.respuesta.tramos?.map((t) => t.hasta) ?? []
+  const usarTramos = destinosTramos.length > 0 && destinosTramos.every((id) => id === 'aterrizaje' || porId.has(id))
+  const secuencia = usarTramos
+    ? destinosTramos
+    : [...viaje.puntos.map((p) => p.id), ...(viaje.volver ? ['aterrizaje'] : [])]
+  const paradas = []
+  let desde = 0
+  secuencia.forEach((id, n) => {
+    const esAterrizaje = id === 'aterrizaje'
+    const punto = esAterrizaje ? { id, ...viaje.aterrizaje } : porId.get(id)
+    const final = n === secuencia.length - 1
+    const i = final && esAterrizaje ? camino.length - 1 : verticeMasCercano(punto, desde)
+    desde = i
+    paradas.push({
+      ...punto,
+      nombre: esAterrizaje ? (final ? 'Aterrizaje' : 'Aterrizaje (recarga)') : punto.nombre,
+      recarga: esAterrizaje && !final,
+      metros: acumulado[i],
+    })
+  })
+  const salidas = 1 + paradas.filter((p) => p.recarga).length
 
   function posicionEn(d) {
     let i = 1
@@ -51,7 +79,7 @@ export function crearSensoresSimulados(viaje) {
     return { pos: { lon: a.lon + (b.lon - a.lon) * f, lat: a.lat + (b.lat - a.lat) * f }, rumbo: rumbo(a, b) }
   }
 
-  let t, modo = 'auto', avance, odometro, pos, rumboActual, siguiente, rastro, fueraDeZona
+  let t, modo = 'auto', avance, odometro, pos, rumboActual, siguiente, rastro, fueraDeZona, tRecarga
 
   function reiniciar() {
     t = 0
@@ -62,15 +90,29 @@ export function crearSensoresSimulados(viaje) {
     siguiente = 0
     rastro = [{ ...pos }]
     fueraDeZona = false
+    tRecarga = 0 // momento de la última recarga del tanque
   }
   reiniciar()
 
+  function llegar() {
+    // al volver al aterrizaje entre salidas, se recarga el tanque
+    if (paradas[siguiente].recarga) tRecarga = t
+    siguiente++
+  }
+
   function actualizarSiguiente() {
     if (modo === 'auto') {
-      while (siguiente < paradas.length && avance >= paradas[siguiente].metros - 0.5) siguiente++
+      while (siguiente < paradas.length && avance >= paradas[siguiente].metros - 0.5) llegar()
     } else {
-      while (siguiente < paradas.length && distancia(pos, paradas[siguiente]) <= LLEGADA_M) siguiente++
+      while (siguiente < paradas.length && distancia(pos, paradas[siguiente]) <= LLEGADA_M) llegar()
     }
+  }
+
+  // paradas que faltan de la salida actual: hasta la próxima vuelta al aterrizaje
+  function pendientesDeLaSalida() {
+    const resto = paradas.slice(siguiente)
+    const fin = resto.findIndex((p) => p.id === 'aterrizaje')
+    return (fin === -1 ? resto : resto.slice(0, fin + 1)).map(({ id, nombre, lon, lat }) => ({ id, nombre, lon, lat }))
   }
 
   const terminado = () => siguiente >= paradas.length
@@ -79,6 +121,7 @@ export function crearSensoresSimulados(viaje) {
     total,
     paradas,
     camino,
+    salidas,
 
     // Avanza la simulación `segundos` segundos.
     // En modo manual, `direccion` = { x: este, y: norte } (o null si no se mueve).
@@ -116,7 +159,8 @@ export function crearSensoresSimulados(viaje) {
       if (nuevo === modo) return
       if (nuevo === 'auto') {
         // vuelve a la ruta en el punto más cercano y sigue desde ahí
-        const i = verticeMasCercano(pos)
+        // (desde la parada anterior, para no saltar a otra salida que pase cerca)
+        const i = verticeMasCercano(pos, siguiente > 0 ? camino.findIndex((_, k) => acumulado[k] >= paradas[siguiente - 1].metros) : 0)
         avance = acumulado[i]
         pos = { ...camino[i] }
         rastro.push({ ...pos })
@@ -145,8 +189,12 @@ export function crearSensoresSimulados(viaje) {
         rumbo: rumboActual,
         rastro: [...rastro, pos],
         proxima: proxima && { nombre: proxima.nombre, faltaM: faltaProxima },
+        salida: Math.min(salidas, 1 + paradas.slice(0, siguiente).filter((p) => p.recarga).length),
+        salidas,
+        // paradas que faltan de la salida actual (para las métricas del backend 2)
+        pendientes: pendientesDeLaSalida(),
         sensores: {
-          oxigenoPct: redondear(Math.max(0, 100 - O2_POR_MIN * (t / 60))),
+          oxigenoPct: redondear(Math.max(0, 100 - O2_POR_MIN * ((t - tRecarga) / 60))),
           temperaturaTraje: redondear(22 + 11 * onda(t, 2400)),
           temperaturaExterior: redondear(-60 + 20 * onda(t, 7200)),
           pulso: Math.round(100 + 35 * onda(t, 900) + 6 * onda(t, 37)),

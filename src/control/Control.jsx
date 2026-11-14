@@ -230,6 +230,12 @@ export function Control() {
               <div><dt>Rumbo</dt><dd className="mono">{String(Math.round(estado.rumbo) % 360).padStart(3, '0')}°</dd></div>
               <div><dt>Próxima parada</dt><dd>{estado.proxima ? `${estado.proxima.nombre} · ${formatearDistancia(estado.proxima.faltaM)}` : 'Llegaste al destino'}</dd></div>
               <div><dt>Distancia restante</dt><dd className="mono">{formatearDistancia(estado.restante ?? 0)}</dd></div>
+              {estado.metricasViaje && (
+                <>
+                  <div><dt>Tiempo para terminar</dt><dd className="mono">{estado.metricasViaje.tiempoMin} min</dd></div>
+                  <div><dt>Oxígeno para terminar</dt><dd className="mono">{estado.metricasViaje.oxigenoG} g</dd></div>
+                </>
+              )}
             </dl>
           )}
 

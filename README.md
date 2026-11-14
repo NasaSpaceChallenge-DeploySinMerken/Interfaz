@@ -53,11 +53,16 @@ Todo se configura en `.env.local` (no se sube a git). Sin ninguna variable, todo
 
 | Variable | Backend | Para qué |
 | --- | --- | --- |
-| `VITE_ANALISIS_URL` | Servicio de análisis de Javier (**en desarrollo**) | Calcula la ruta por el terreno, el orden de las visitas, el tiempo y el oxígeno. Si está, tiene prioridad para "Calcular ruta". |
-| `VITE_API_URL` | API del equipo del mapa (Ignacio) | Valida la ruta (zona y elevación) y espera el análisis del equipo 3. Se usa si no hay `VITE_ANALISIS_URL`. |
+| `VITE_API_URL` | **Backend 1**: API del equipo del mapa | **Calcular la ruta** en la planificación. Con `POST /api/plan` (rama `feat/mapa-layers`), que pasa la ruta al análisis del equipo 3: sigue el terreno, elige el orden, estima el oxígeno, marca las visitas inalcanzables y divide en varias salidas si hace falta. Si ese endpoint no existe, usa el flujo anterior `POST /api/routes`. |
+| `VITE_ANALISIS_URL` | **Backend 2**: servicio de análisis de Javier (**en desarrollo**) | **Métricas durante el viaje**: lo que falta desde la posición actual (distancia, tiempo, oxígeno, pendientes y peligros). |
 | `VITE_MONITOREO_URL` | Backend de monitoreo (todavía no existe) | Recibe sensores y posición cada segundo y devuelve las alertas. |
 
-Sin configurar nada usa un **backend falso** (`src/api/mock.js`): rutas en línea recta, métricas y alertas de ejemplo.
+Ejemplo de `.env.local` con los dos backends que ya existen:
+
+```
+VITE_API_URL=http://localhost:3000
+VITE_ANALISIS_URL=http://52.6.216.161:8000
+```
 
 ### Con la API del equipo del mapa
 
@@ -112,29 +117,47 @@ Qué se usa de su API y qué sigue siendo falso (todo se traduce en `src/api/cli
 | Capas del mapa | Por ahora, teselas de Mars Trek. Las capas de su API son GeoTIFF para OpenLayers y se usarán al integrar su mapa. |
 | Monitoreo y alertas | **Falso** hasta que el otro equipo exponga su endpoint. El falso avisa de oxígeno, salud, temperatura del traje y desvío de la ruta (más de 50 m). |
 
-### Con el servicio de análisis (en desarrollo)
+### Calcular la ruta con `POST /api/plan` (backend 1 + análisis del equipo 3)
 
-Javier está armando un servicio aparte, en Python, en la rama `feat/javier/analisis` de martian-map (`analysis/server.py`, contrato en su `README.md`). Su `POST /plan` recibe el aterrizaje y las visitas y devuelve:
-
-- la ruta **siguiendo el terreno** (busca caminos sobre el DEM y evita pendientes de 19° o más);
-- **el orden** de las visitas que conviene (la lista de puntos se reordena sola);
-- distancia, tiempo y **oxígeno en gramos** por tramo, y el total contra un tanque de 700 g con reserva;
-- las visitas a las que **no se puede llegar** y por qué (se marcan en rojo y quedan fuera de la caminata).
-
-Para probarlo:
+En la rama `feat/mapa-layers` de martian-map, el backend 1 tiene `POST /api/plan`: recibe el aterrizaje y las visitas, se los pasa al `POST /plan` del servicio de análisis y devuelve su respuesta tal cual. Para usarlo, el backend 1 se levanta con `ANALYSIS_URL`:
 
 ```bash
-# en martian-map, la rama de Javier (necesita Python con Pillow)
-git checkout feat/javier/analisis
-GALE_DEM_PATH=/ruta/a/Gale_DEM_SMG_1m.tif python analysis/server.py   # http://localhost:8000
-
-# en Interfaz, .env.local
-VITE_ANALISIS_URL=http://localhost:8000
+# en martian-map
+git checkout feat/mapa-layers
+ANALYSIS_URL=http://52.6.216.161:8000 npm run api   # http://localhost:3000
 ```
 
-**Necesita el DEM completo de Gale** (`Gale_DEM_SMG_1m.tif`, unos 5,8 GB), que no está en el repo. Sin él, "Calcular ruta" muestra "No se encontró el DEM de Gale". Javier también lo está preparando para Railway: cuando tenga una dirección pública, basta con ponerla en `VITE_ANALISIS_URL`.
+Con eso, "Calcular ruta" muestra:
 
-Como está en desarrollo, la interfaz lo indica en las métricas, y el oxígeno es una estimación exploratoria. La traducción de su respuesta está en `src/api/cliente.js` (`adaptarPlan`).
+- la ruta **siguiendo el terreno** y **el orden** que conviene (la lista de puntos se reordena sola);
+- distancia, duración y **oxígeno** del total y por tramo;
+- **visitas inalcanzables**: se avisan con su motivo ("no hay camino transitable en el terreno" o "no alcanza el oxígeno para volver con reserva"), se marcan en rojo y quedan fuera de la caminata. Si ninguna es alcanzable, sale un error y no se puede comenzar;
+- **varias salidas**: si un tanque no alcanza, la ruta vuelve al aterrizaje a recargar. Las métricas indican cuántas salidas y recargas hay, y cada tramo dice a qué salida pertenece. En la caminata, el astronauta pasa por "Aterrizaje (recarga)" y el tanque vuelve a 100 %.
+
+Si el backend 1 no tiene `/api/plan` (por ejemplo, la rama `mapa-nacho-marti`) o le falta `ANALYSIS_URL`, la interfaz usa sola el flujo anterior (`/api/routes`).
+
+**Ojo con los tiempos:** con muchos puntos lejanos, el análisis puede tardar más de 60 s y el backend 1 corta con "El análisis no respondió en 60000 ms". Con el ejemplo tarda unos 6 s; con 6 puntos repartidos por todo el tramo, más de 60 s. Se puede subir el límite con `ANALYSIS_TIMEOUT_MS` al levantar el backend 1.
+
+### Con el servicio de análisis: métricas durante el viaje (en desarrollo)
+
+El backend 2 es el servicio de Javier, en Python (rama `feat/javier/analisis` de martian-map, `analysis/server.py`; contrato en su `README.md`). Está publicado en `http://52.6.216.161:8000`, ya con el DEM de Gale.
+
+Durante la caminata, la interfaz le manda la **posición actual y las paradas que faltan, en orden**, a `POST /gale/analyze`. Lo pide al empezar y después cada vez que el astronauta se mueve más de 15 m o cambia de parada, nunca dos pedidos a la vez. Con los tramos de ida que devuelve, el HUD muestra el panel **"Lo que falta · backend 2"**:
+
+- distancia, tiempo y **oxígeno necesario para terminar** (con varias salidas, para terminar **la salida actual**, hasta la próxima recarga), comparado con el oxígeno que queda en el tanque;
+- la pendiente máxima del tramo hacia la próxima parada.
+
+De esas métricas salen dos alertas: **"El oxígeno no alcanza para terminar con reserva"** (crítica) y el aviso de **peligros del tramo actual**, como "pendiente fuerte". El teléfono también muestra el tiempo y el oxígeno para terminar.
+
+Sin `VITE_ANALISIS_URL`, el panel dice "estimación local" y calcula en línea recta con los mismos supuestos (2,5 km/h, 1,43 g/min, tanque de 700 g).
+
+Notas:
+
+- **El servicio pide más de 1 m entre puntos seguidos.** Cuando el astronauta está encima de una parada, la interfaz la saca de la lista.
+- **La dirección es `http`.** Funciona con `npm run dev`; si la interfaz se publica con `https` (por ejemplo, en GitHub Pages), el navegador va a bloquear las llamadas hasta que el servicio tenga `https`.
+- **Los tiempos y el oxígeno son estimaciones exploratorias**: el mismo servicio aclara que no es una herramienta de seguridad para una EVA.
+
+La traducción de su respuesta está en `src/api/cliente.js` (`obtenerMetricasViaje`).
 
 ### Con el backend de monitoreo
 
@@ -174,6 +197,7 @@ src/
     useAlertas.js, Alertas.jsx
     BarraSuperior.jsx, Brujula.jsx, Minimapa.jsx
     Cruceta.jsx               control manual en pantalla
+    PanelViaje.jsx            lo que falta del viaje (métricas del backend 2)
   control/                    control de la demo desde el teléfono (#control)
     Control.jsx               emparejar con la demo y controlar la caminata
     PlanificacionRemota.jsx   preparar el viaje desde el teléfono

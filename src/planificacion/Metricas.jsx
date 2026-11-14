@@ -1,8 +1,9 @@
 // Métricas de la ruta calculada.
 //
 // Según la fuente (resultado.fuente):
-// - 'analisis': servicio de análisis (en desarrollo): ruta por el terreno, tiempo y oxígeno.
-// - 'mapa': API del equipo del mapa: distancia y elevación; el resto llega con el análisis.
+// - 'plan': backend 1 con /api/plan (análisis del equipo 3): ruta por el terreno,
+//   orden de visitas, tiempo, oxígeno, visitas inalcanzables y varias salidas.
+// - 'mapa': backend 1 con /api/routes: distancia y elevación; el resto llega con el análisis.
 // - 'mock': backend falso, valores de ejemplo.
 
 const ESFUERZO = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' }
@@ -12,7 +13,7 @@ const ESTADO = {
   analyzed: null,
 }
 const NOTA = {
-  analisis: 'Ruta calculada por el servicio de análisis (en desarrollo): sigue el terreno y elige el orden de las visitas. El oxígeno es una estimación exploratoria.',
+  plan: 'Ruta calculada por la API del mapa con el análisis del terreno del equipo 3: sigue el terreno y elige el orden de las visitas. El oxígeno es una estimación exploratoria.',
   mapa: 'Ruta validada por la API del equipo del mapa. Tramos en línea recta entre tus puntos.',
   mock: 'Backend falso: tramos en línea recta y valores de ejemplo. El backend real calcula la ruta según el terreno.',
 }
@@ -65,8 +66,8 @@ export function Metricas({ resultado, nombres }) {
           detalle={[m.oxigenoDetalle, m.oxigenoAlcanza === false ? 'sin reserva suficiente' : null].filter(Boolean).join(' · ') || null}
           vacio={vacio}
         />
-        {m.salidas > 1
-          ? <Metrica nombre="Salidas" valor={`${m.salidas}`} detalle="recarga en el aterrizaje" vacio={vacio} />
+        {m.salidas != null
+          ? <Metrica nombre="Salidas" valor={`${m.salidas}`} detalle={m.salidas > 1 ? `vuelve al aterrizaje a recargar oxígeno${m.recargas ? ` (${m.recargas} ${m.recargas === 1 ? 'recarga' : 'recargas'})` : ''}` : 'una sola caminata'} vacio={vacio} />
           : <Metrica nombre="Esfuerzo" valor={m.esfuerzo != null ? (ESFUERZO[m.esfuerzo] ?? m.esfuerzo) : null} vacio={vacio} />}
         <Metrica nombre="Pendiente máxima" valor={pendiente} vacio={vacio} ancha={!hayElevacion} />
         {hayElevacion && <Metrica nombre="Elevación" valor={`${m.elevacionMinM} a ${m.elevacionMaxM} m`} vacio={vacio} />}
@@ -86,7 +87,10 @@ export function Metricas({ resultado, nombres }) {
         <tbody>
           {tramos.map((t, i) => (
             <tr key={i}>
-              <td>{i + 1}. {nombres[t.desde] ?? t.desde} → {nombres[t.hasta] ?? t.hasta}</td>
+              <td>
+                {m.salidas > 1 && t.salida != null && <span className="tramos__salida">Salida {t.salida + 1}</span>}
+                {i + 1}. {nombres[t.desde] ?? t.desde} → {nombres[t.hasta] ?? t.hasta}
+              </td>
               <td className="num">{km(t.distanciaM)}</td>
               {hayDesnivel
                 ? <td className="num">{t.desnivelM > 0 ? '+' : ''}{t.desnivelM} m</td>

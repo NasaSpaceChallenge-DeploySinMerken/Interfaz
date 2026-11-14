@@ -147,3 +147,27 @@ export async function enviarMonitoreo({ idRuta, posicion, sensores: s }) {
 
   return { alertas }
 }
+
+// Métricas de lo que falta del viaje (sin backend 2): línea recta entre
+// la posición y las paradas que quedan, con los mismos supuestos que el
+// servicio de análisis (2,5 km/h, 1,43 g/min, tanque de 700 g).
+export async function metricasViaje({ posicion, destinos }) {
+  let anterior = posicion
+  let restanteM = 0
+  for (const d of destinos) {
+    restanteM += distancia(anterior, d)
+    anterior = d
+  }
+  const tiempoMin = restanteM / (2500 / 60)
+  return {
+    fuente: 'mock',
+    restanteM: Math.round(restanteM),
+    tiempoMin: Math.round(tiempoMin),
+    oxigenoG: Math.round(tiempoMin * 1.43),
+    tanqueG: 700,
+    reservaG: 85.8,
+    pendienteMaxPct: null,
+    tramoActual: { hacia: destinos[0].nombre, distanciaM: Math.round(distancia(posicion, destinos[0])), pendienteMaxPct: null, desnivelM: null, peligros: [] },
+    peligros: [],
+  }
+}

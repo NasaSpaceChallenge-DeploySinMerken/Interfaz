@@ -487,3 +487,11 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .aviso-telefono { margin: 0; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(224, 120, 74, 0.12); border-bottom: 1px solid var(--acento); font-size: 14px; }
 .aviso-telefono p { margin: 0; }
 .aviso-telefono .boton { height: 44px; }
+
+/* Lo que falta del viaje (métricas del backend 2) */
+.viaje { padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.viaje__ayuda, .viaje__error { margin: 0; font-size: 12px; color: var(--texto-suave); }
+.viaje__error { color: var(--error); }
+.viaje__falta { color: var(--critico); }
+.lateral { max-height: calc(100vh - 140px); overflow-y: auto; }
+.tramos__salida { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--acento); }

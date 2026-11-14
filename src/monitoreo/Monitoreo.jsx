@@ -12,6 +12,7 @@ import { Brujula } from './Brujula'
 import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
 import { Cruceta } from './Cruceta'
+import { PanelViaje, alertasDeMetricas } from './PanelViaje'
 
 const ALERTA_BORDE = {
   id: 'interfaz-borde-zona',
@@ -20,8 +21,13 @@ const ALERTA_BORDE = {
 }
 
 export function Monitoreo({ viaje, onSalir }) {
-  const { lectura, sensores, alertas: delBackend, sinConexion, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones } = useMonitoreo(viaje, onSalir)
-  const { alertas, cerrar } = useAlertas(lectura.fueraDeZona ? [ALERTA_BORDE, ...delBackend] : delBackend)
+  const { lectura, sensores, alertas: delBackend, sinConexion, metricasViaje, errorMetricas, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones } = useMonitoreo(viaje, onSalir)
+  // alertas: las del monitoreo, las que salen de las métricas del backend 2 y la del borde del tramo
+  const { alertas, cerrar } = useAlertas([
+    ...(lectura.fueraDeZona ? [ALERTA_BORDE] : []),
+    ...alertasDeMetricas(metricasViaje, lectura.sensores),
+    ...delBackend,
+  ])
   const [z, setZ] = useState(15)
 
   const { camino, paradas } = sensores
@@ -74,6 +80,7 @@ export function Monitoreo({ viaje, onSalir }) {
             <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
             <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
           </section>
+          <PanelViaje metricas={metricasViaje} error={errorMetricas} sensores={lectura.sensores} salida={lectura.salida} salidas={lectura.salidas} />
         </div>
 
         {/* con control remoto conectado, la cruceta no se muestra para no tapar la demo */}
