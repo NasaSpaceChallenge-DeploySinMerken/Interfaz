@@ -52,7 +52,7 @@ Respuesta:
 ]
 ```
 
-Solo van las capas que se dibujan en el mapa. `bbox` va en el orden `[oeste, sur, este, norte]`. La elevación (*MRO HiRISE, Gale Crater DEM*) vive solo en el backend, que la usa para calcular la ruta: la interfaz no la pide ni la dibuja.
+Solo van las capas que se dibujan en el mapa. `bbox` va en el orden `[oeste, sur, este, norte]`. Campos opcionales: `descripcion` (texto corto para la lista de capas), `zMin` (desde qué zoom se muestra) y `zMax` (último nivel de zoom con teselas; por ejemplo, 12 para el CTX de Gale y 16 para el HiRISE de Curiosity). La elevación (*MRO HiRISE, Gale Crater DEM*) vive solo en el backend, que la usa para calcular la ruta: la interfaz no la pide ni la dibuja.
 
 ### `POST /api/rutas`
 
@@ -64,7 +64,8 @@ Pedido:
   "puntos": [
     { "id": "p1", "nombre": "Darwin", "lon": 137.4271, "lat": -4.6063 },
     { "id": "p2", "nombre": "Pahrump Hills", "lon": 137.3830, "lat": -4.6592 }
-  ]
+  ],
+  "volver": true
 }
 ```
 
@@ -88,8 +89,9 @@ Respuesta:
 ```
 
 - `puntos` tiene **entre 1 y 6 puntos a visitar**, sin contar el aterrizaje. La interfaz no deja agregar más.
+- `volver` indica si la ruta termina en el punto de aterrizaje. En la respuesta, el último tramo tiene `"hasta": "aterrizaje"`.
+- `pendienteMaxGrados` puede venir en `null` si no se calculó.
 - **Por confirmar:** los nombres y unidades de `metricas` y los valores posibles de `esfuerzo`.
-- **Por confirmar:** si la ruta vuelve al punto de aterrizaje.
 - **Por confirmar:** qué responde el backend cuando no hay ruta posible, por ejemplo cuando no alcanza el oxígeno. Propuesta: estado `422` con `{ "error": "mensaje para mostrar" }`.
 
 ## Fase 2 — Monitorear

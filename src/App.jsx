@@ -4,15 +4,9 @@ import { Monitoreo } from './monitoreo/Monitoreo'
 
 // Dos fases: primero se prepara el viaje y después se monitorea la caminata.
 export default function App() {
-  const [ruta, setRuta] = useState(null)
+  const [viaje, setViaje] = useState(null)
 
-  return (
-    <div className="app">
-      {ruta ? (
-        <Monitoreo ruta={ruta} />
-      ) : (
-        <Planificacion onComenzar={setRuta} />
-      )}
-    </div>
-  )
+  return viaje
+    ? <Monitoreo viaje={viaje} onSalir={() => setViaje(null)} />
+    : <Planificacion onComenzar={setViaje} />
 }

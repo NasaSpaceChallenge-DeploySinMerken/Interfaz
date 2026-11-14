@@ -23,6 +23,8 @@ La interfaz conversa con el backend en dos fases (detalle en [Contrato_API.md](C
 
 ## 2. Reparto
 
+> **Estado al 14/11/2026:** todas las tareas tienen una primera versión funcionando con el backend falso (`npm run dev`). Cada uno revisa, prueba y ajusta su parte, y la conecta con el backend real cuando esté.
+
 ### Pamela — Fase 1: preparar el viaje, y estilo
 
 | # | Tarea | Detalle |

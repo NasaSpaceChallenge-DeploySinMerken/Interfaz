@@ -1,25 +1,99 @@
-// Fase 2: monitorear la caminata (Juan).
-// Referencia de diseño: mockup/gale-hud.html.
+// Fase 2: monitorear la caminata.
+// Mapa grande que sigue al astronauta, minimapa del recorrido y alertas del backend.
 
+import { useState } from 'react'
+import { MapaTeselas } from '../mapa/MapaTeselas'
+import { escala, formatearDistancia } from '../mapa/geo'
 import { useMonitoreo } from './useMonitoreo'
 import { useAlertas } from './useAlertas'
 import { BarraSuperior } from './BarraSuperior'
+import { Brujula } from './Brujula'
 import { Alertas } from './Alertas'
+import { Minimapa } from './Minimapa'
 
-export function Monitoreo({ ruta }) {
-  const { estado, alertas: delBackend, acciones } = useMonitoreo(ruta)
+export function Monitoreo({ viaje, onSalir }) {
+  const { lectura, sensores, alertas: delBackend, sinConexion, enMarcha, velocidad, acciones } = useMonitoreo(viaje)
   const { alertas, cerrar } = useAlertas(delBackend)
+  const [z, setZ] = useState(15)
+
+  const { camino, paradas } = sensores
+  const e = escala(z, 90)
+  const destino = paradas[paradas.length - 1]
 
   return (
-    <section className="monitoreo" aria-label="Caminata en curso">
-      <BarraSuperior estado={estado} acciones={acciones} />
+    <div className="monitoreo">
+      <MapaTeselas className="monitoreo__mapa" capas={viaje.capas} centro={lectura.posicion} z={z}>
+        {(proyectar, tam) => {
+          const pts = (lista) => lista.map((p) => proyectar(p.lon, p.lat).map((n) => n.toFixed(1)).join(',')).join(' ')
+          const hecho = [...camino.slice(0, lectura.indice + 1), lectura.posicion]
+          const falta = [lectura.posicion, ...camino.slice(lectura.indice + 1)]
+          const [bx, by] = proyectar(viaje.aterrizaje.lon, viaje.aterrizaje.lat)
+          return (
+            <>
+              <polyline points={pts(falta)} className="hud-pendiente" />
+              <polyline points={pts(hecho)} className="hud-recorrido" />
+              {viaje.puntos.map((p, i) => {
+                const [x, y] = proyectar(p.lon, p.lat)
+                return (
+                  <g key={p.id} transform={`translate(${x} ${y})`}>
+                    <circle r="11" className="hud-parada" />
+                    <text y="4" className="hud-parada__num">{i + 1}</text>
+                    <text x="18" y="5" className="etiqueta-mapa">{p.nombre}</text>
+                  </g>
+                )
+              })}
+              <g transform={`translate(${bx} ${by})`}>
+                <rect x="-12" y="-12" width="24" height="24" rx="5" className="hud-base" />
+                <text x="18" y="5" className="etiqueta-mapa">Aterrizaje</text>
+              </g>
+              <g transform={`translate(${tam.ancho / 2} ${tam.alto / 2})`}>
+                <circle r="34" className="hud-astronauta__halo" />
+                <path d="M0 -24 L16 16 L0 8 L-16 16 Z" transform={`rotate(${lectura.rumbo})`} className="hud-astronauta" />
+              </g>
+            </>
+          )
+        }}
+      </MapaTeselas>
 
-      {/* El mapa lo monta el equipo del mapa. */}
-      <div id="map" className="mapa">
-        <p>Aquí va el mapa</p>
+      <div className="hud">
+        <BarraSuperior t={lectura.t} enMarcha={enMarcha} velocidad={velocidad} acciones={acciones} onSalir={onSalir} />
+        <Brujula rumbo={lectura.rumbo} />
+        <Alertas alertas={alertas} onCerrar={cerrar} sinConexion={sinConexion} />
+
+        <div className="lateral">
+          <Minimapa capas={viaje.capas} camino={camino} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
+          <section className="panel objetivo" aria-label="Recorrido">
+            <span className="etiqueta">Destino</span>
+            <span className="objetivo__nombre">{destino?.nombre ?? '—'}</span>
+            <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.total - lectura.recorrido)}</span></div>
+            <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
+          </section>
+        </div>
+
+        <div className="panel escala-hud">
+          <div className="escala">
+            <div className="escala__barra" style={{ width: e.px }} />
+            <span className="mono">{e.texto}</span>
+          </div>
+          <div className="zoom-hud">
+            <button type="button" onClick={() => setZ((v) => Math.max(12, v - 1))} aria-label="Alejar">−</button>
+            <button type="button" onClick={() => setZ((v) => Math.min(17, v + 1))} aria-label="Acercar">+</button>
+          </div>
+        </div>
+
+        <p className="panel creditos-hud">
+          Imágenes: NASA Mars Trek (CTX: NASA/JPL-Caltech/MSSS · HiRISE: NASA/JPL-Caltech/Univ. of Arizona), coloreadas para el diseño.
+        </p>
+
+        <section className="panel proxima" aria-label="Próxima parada" aria-live="polite">
+          <span className="etiqueta">Próxima parada</span>
+          <span className="objetivo__nombre">{lectura.proxima ? lectura.proxima.nombre : 'Llegaste al destino'}</span>
+          <div className="objetivo__fila">
+            <span>Falta</span>
+            <span className="mono objetivo__dato">{lectura.proxima ? formatearDistancia(lectura.proxima.faltaM) : '—'}</span>
+          </div>
+        </section>
       </div>
-
-      <Alertas alertas={alertas} onCerrar={cerrar} />
-    </section>
+    </div>
   )
 }

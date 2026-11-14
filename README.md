@@ -4,7 +4,7 @@ Interfaz del navegador del proyecto [martian-map](https://github.com/NasaSpaceCh
 
 - Reparto de tareas: [Division_tareas_interfaz.md](Division_tareas_interfaz.md)
 - Contrato con el backend: [Contrato_API.md](Contrato_API.md)
-- Diseño de referencia: [mockup/gale-hud.html](mockup/gale-hud.html) (se abre directo en el navegador)
+- Propuesta para el resto del equipo: [Propuesta_equipo.md](Propuesta_equipo.md)
 
 ## Cómo correrlo
 
@@ -13,7 +13,12 @@ npm install
 npm run dev
 ```
 
-Sin configurar nada usa un backend falso. Para usar el real, crear `.env.local` con:
+Abre `http://localhost:5173`. Necesita internet: las imágenes del mapa vienen de NASA Mars Trek.
+
+1. **Preparar el viaje:** marca el aterrizaje y hasta 6 puntos con clics en el mapa (o "Cargar ejemplo") y pulsa "Calcular ruta".
+2. **Caminata:** "Comenzar caminata" abre el HUD. El mapa sigue al astronauta y llegan las alertas del backend cada segundo.
+
+Sin configurar nada usa un **backend falso** (`src/api/mock.js`): rutas en línea recta, métricas y alertas de ejemplo. Para usar el real, crear `.env.local` con:
 
 ```
 VITE_API_URL=http://localhost:8000
@@ -24,24 +29,28 @@ VITE_API_URL=http://localhost:8000
 ```
 src/
   App.jsx                     pasa de la fase 1 a la fase 2
-  style.css                   estilo (Pamela)
+  style.css                   estilos de toda la interfaz
   api/
-    cliente.js                llamadas al backend (Juan)
-    mock.js                   backend falso (Juan)
-  planificacion/              fase 1: preparar el viaje (Pamela)
-    Planificacion.jsx
+    cliente.js                llamadas al backend (Contrato_API.md)
+    mock.js                   backend falso
+  datos/gale.js               tramo de la demo, máximo de puntos y ejemplo
+  mapa/
+    geo.js                    cálculos de teselas, distancias y rumbo
+    MapaTeselas.jsx           mapa provisional con teselas de Mars Trek
+  planificacion/              fase 1: preparar el viaje
+    Planificacion.jsx         pantalla completa
+    MapaPlanificacion.jsx     mapa con pines y clic para marcar
     SelectorCapas.jsx
     ListaPuntos.jsx
+    FormCoordenadas.jsx
     Metricas.jsx
-  monitoreo/                  fase 2: monitorear la caminata (Juan)
-    Monitoreo.jsx
-    useMonitoreo.js           manda sensores y ubicación cada 1 s
-    sensoresSimulados.js      lecturas del traje para la demo
+  monitoreo/                  fase 2: monitorear la caminata
+    Monitoreo.jsx             HUD completo
+    useMonitoreo.js           avanza la simulación y manda sensores cada 1 s
+    sensoresSimulados.js      posición y lecturas del traje para la demo
     useAlertas.js, Alertas.jsx
-    BarraSuperior.jsx
-mockup/
-  planificacion.html          fase 1: marcar aterrizaje y puntos (máx. 6) y calcular la ruta
-  gale.html                   primera maqueta (vista de mapa)
-  gale-hud.html               maqueta tipo videojuego en 2D (mapa que sigue al astronauta + minimapa)
-  datos-gale.js               ruta real de Curiosity y sus paradas
+    BarraSuperior.jsx, Brujula.jsx, Minimapa.jsx
+mockup/                       maquetas HTML sueltas (referencia de diseño)
 ```
+
+`MapaTeselas.jsx` es un mapa provisional: el definitivo lo hace el equipo del mapa (ver [Propuesta_equipo.md](Propuesta_equipo.md), sección 4).
