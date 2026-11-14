@@ -4,6 +4,10 @@
 // 2. Se marca el aterrizaje y hasta MAX_PUNTOS puntos a visitar (clic en el mapa o a mano).
 // 3. Los manda al backend y muestra la ruta y sus métricas.
 // 4. "Comenzar caminata" pasa a la fase 2.
+//
+// Todo se puede hacer también desde el teléfono (#control): el teléfono manda
+// órdenes y esta pantalla las aplica y le devuelve su estado, así lo que se marca
+// en el teléfono se ve aquí.
 
 import { useEffect, useRef, useState } from 'react'
 import { obtenerCapas, obtenerRuta, planificarRuta, usaBackendFalso } from '../api/cliente'
@@ -14,6 +18,10 @@ import { ListaPuntos } from './ListaPuntos'
 import { Metricas } from './Metricas'
 import { FormCoordenadas } from './FormCoordenadas'
 import { MapaPlanificacion } from './MapaPlanificacion'
+import { abrirCanal } from '../control/canal'
+import { CODIGO_SESION } from '../control/sesion'
+
+const ESPERA_TELEFONO_MS = 3000
 
 export function Planificacion({ onComenzar }) {
   const [capas, setCapas] = useState([])
@@ -123,7 +131,16 @@ export function Planificacion({ onComenzar }) {
     setErrorRuta(null)
     setIdsConError([])
     try {
-      setResultado(await planificarRuta({ aterrizaje, puntos, volver }))
+      const r = await planificarRuta({ aterrizaje, puntos, volver })
+      // el servicio de análisis elige el orden de las visitas: la lista lo refleja
+      if (r.ordenIds?.length) {
+        setPuntos((lista) => [
+          ...r.ordenIds.map((id) => lista.find((p) => p.id === id)).filter(Boolean),
+          ...lista.filter((p) => !r.ordenIds.includes(p.id)),
+        ])
+      }
+      setIdsConError(r.inalcanzables?.map((v) => v.id) ?? [])
+      setResultado(r)
     } catch (e) {
       setErrorRuta(e.message)
       setIdsConError(e.ids ?? [])
@@ -135,6 +152,64 @@ export function Planificacion({ onComenzar }) {
   const capasVisibles = capas.filter((c) => activas.has(c.id))
   const nombres = Object.fromEntries([['aterrizaje', 'Aterrizaje'], ...puntos.map((p) => [p.id, p.nombre])])
 
+  const comenzar = () => {
+    if (!resultado) return
+    // las visitas a las que no se puede llegar quedan fuera de la caminata
+    const fuera = new Set(resultado.inalcanzables?.map((v) => v.id) ?? [])
+    onComenzar({ capas: capasVisibles, aterrizaje, puntos: puntos.filter((p) => !fuera.has(p.id)), volver, respuesta: resultado })
+  }
+  const alternarCapa = (id) => setActivas((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  // ---------------- Control desde el teléfono ----------------
+  // órdenes que puede mandar el teléfono ({ tipo: 'plan', accion, ...datos })
+  const ordenes = useRef({})
+  ordenes.current = {
+    marcar: (m) => marcarEnMapa({ lon: m.lon, lat: m.lat }),
+    fijarAterrizaje: (m) => (dentroDe(TRAMO, m) ? fijarAterrizaje(m) : avisar('Ese punto está fuera del tramo de la demo.')),
+    agregar: (m) => {
+      if (!dentroDe(TRAMO, m)) return avisar('Ese punto está fuera del tramo de la demo.')
+      if (!aterrizaje) return avisar('Primero marca el punto de aterrizaje.')
+      agregarPunto({ lon: m.lon, lat: m.lat, nombre: m.nombre })
+    },
+    quitar: (m) => { setPuntos((l) => l.filter((p) => p.id !== m.id)); cambio() },
+    mover: (m) => { if (puntos[m.i] && puntos[m.i + m.paso]) moverPunto(m.i, m.paso) },
+    renombrar: (m) => setPuntos((l) => l.map((p) => (p.id === m.id ? { ...p, nombre: m.nombre } : p))),
+    volver: (m) => { setVolver(!!m.valor); cambio() },
+    modoMarcado: (m) => setModo(m.modo === 'punto' ? 'punto' : 'aterrizaje'),
+    capa: (m) => alternarCapa(m.id),
+    ejemplo: cargarEjemplo,
+    borrar: borrarTodo,
+    calcular: () => { if (aterrizaje && puntos.length && !calculando) calcular() },
+    comenzar,
+  }
+
+  const canal = useRef(null)
+  const [ultimoTelefono, setUltimoTelefono] = useState(0)
+  const [ahora, setAhora] = useState(Date.now())
+  useEffect(() => {
+    canal.current = abrirCanal('demo', CODIGO_SESION, (msg) => {
+      setUltimoTelefono(Date.now())
+      if (msg.tipo === 'plan') ordenes.current[msg.accion]?.(msg)
+    })
+    return () => canal.current.cerrar()
+  }, [])
+
+  // estado → teléfono: en cada cambio y una vez por segundo
+  const estado = {
+    tipo: 'estado', fase: 'planificacion', capas, activas: [...activas], aterrizaje, puntos, volver, modo,
+    calculando, errorRuta, idsConError, aviso, resultado, maxPuntos: MAX_PUNTOS,
+  }
+  const estadoRef = useRef(estado)
+  estadoRef.current = estado
+  useEffect(() => {
+    canal.current?.enviar(estadoRef.current)
+  }, [capas, activas, aterrizaje, puntos, volver, modo, calculando, errorRuta, aviso, resultado])
+  useEffect(() => {
+    const id = setInterval(() => { canal.current?.enviar(estadoRef.current); setAhora(Date.now()) }, 1000)
+    return () => clearInterval(id)
+  }, [])
+  const telefonoConectado = ahora - ultimoTelefono < ESPERA_TELEFONO_MS
+
   return (
     <div className="planificacion">
       <aside className="panel-lateral" aria-label="Preparar el viaje">
@@ -142,6 +217,10 @@ export function Planificacion({ onComenzar }) {
           <p className="cabecera__marca">MARTIAN MAP</p>
           <h1 className="cabecera__titulo">Preparar el viaje</h1>
           <p className="cabecera__lugar">Cráter Gale · 137.30–137.60° E, 4.50–4.75° S</p>
+          <p className={`cabecera__telefono ${telefonoConectado ? 'cabecera__telefono--ok' : ''}`}>
+            <span className="punto-estado" aria-hidden="true" />
+            {telefonoConectado ? 'Teléfono conectado' : 'Control desde el teléfono'} · código <strong className="mono">{CODIGO_SESION}</strong>
+          </p>
         </header>
 
         <section className="paso" aria-labelledby="t-capas">
@@ -150,7 +229,7 @@ export function Planificacion({ onComenzar }) {
             capas={capas}
             activas={activas}
             error={errorCapas}
-            onCambiar={(id) => setActivas((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })}
+            onCambiar={alternarCapa}
           />
         </section>
 
@@ -206,7 +285,7 @@ export function Planificacion({ onComenzar }) {
             <button
               type="button"
               className="boton boton--principal"
-              onClick={() => onComenzar({ capas: capasVisibles, aterrizaje, puntos, volver, respuesta: resultado })}
+              onClick={comenzar}
             >
               Comenzar caminata →
             </button>

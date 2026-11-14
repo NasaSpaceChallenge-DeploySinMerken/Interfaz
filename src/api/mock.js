@@ -35,8 +35,25 @@ const CAPAS = [
 
 // Para que las alertas falsas del monitoreo funcionen también con rutas
 // calculadas por el backend real.
-export function registrarRuta(idRuta, aterrizaje) {
-  rutas.set(idRuta, { aterrizaje })
+export function registrarRuta(idRuta, aterrizaje, coordenadas = []) {
+  rutas.set(idRuta, { aterrizaje, camino: coordenadas.map(([lon, lat]) => ({ lon, lat })) })
+}
+
+// distancia en metros desde p a la ruta (al segmento más cercano)
+function distanciaARuta(p, camino) {
+  let minima = Infinity
+  for (let i = 1; i < camino.length; i++) {
+    const a = camino[i - 1], b = camino[i]
+    // coordenadas locales en metros alrededor de a
+    const k = (Math.PI / 180) * 3389500
+    const c = Math.cos((a.lat * Math.PI) / 180)
+    const bx = (b.lon - a.lon) * k * c, by = (b.lat - a.lat) * k
+    const px = (p.lon - a.lon) * k * c, py = (p.lat - a.lat) * k
+    const largo2 = bx * bx + by * by
+    const f = largo2 ? Math.max(0, Math.min(1, (px * bx + py * by) / largo2)) : 0
+    minima = Math.min(minima, Math.hypot(px - f * bx, py - f * by))
+  }
+  return minima
 }
 
 export async function obtenerCapas() {
@@ -74,7 +91,7 @@ export async function planificarRuta({ aterrizaje, puntos, volver = true }) {
   }
 
   const idRuta = `mock-${Date.now()}`
-  rutas.set(idRuta, { aterrizaje })
+  registrarRuta(idRuta, aterrizaje, secuencia.map((p) => [p.lon, p.lat]))
   return {
     idRuta,
     ruta: { type: 'LineString', coordinates: secuencia.map((p) => [p.lon, p.lat]) },
@@ -87,6 +104,7 @@ export async function planificarRuta({ aterrizaje, puntos, volver = true }) {
     },
     tramos,
     estadoAnalisis: 'analyzed',
+    fuente: 'mock',
   }
 }
 
@@ -105,6 +123,13 @@ export async function enviarMonitoreo({ idRuta, posicion, sensores: s }) {
     const minutosParaVolver = distancia(posicion, ruta.aterrizaje) / VEL_M_S / 60
     if (minutosRestantes < minutosParaVolver) {
       alertas.push({ id: 'oxigeno-retorno', nivel: 'critico', mensaje: `El oxígeno no alcanza para volver: quedan ${Math.round(minutosRestantes)} min y la vuelta toma ${Math.round(minutosParaVolver)} min` })
+    }
+
+    // Desvío de la ruta planificada
+    if (ruta.camino.length > 1) {
+      const desvio = distanciaARuta(posicion, ruta.camino)
+      const nDesvio = nivel(desvio, 50, 200)
+      if (nDesvio) alertas.push({ id: 'ruta-desvio', nivel: nDesvio, mensaje: `Te desviaste ${Math.round(desvio)} m de la ruta planificada` })
     }
   }
 

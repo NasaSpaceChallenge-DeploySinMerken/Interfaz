@@ -1,5 +1,6 @@
 // Fase 2: monitorear la caminata.
 // Mapa grande que sigue al astronauta, minimapa del recorrido y alertas del backend.
+// En modo manual el astronauta se controla con teclado, cruceta o joystick.
 
 import { useState } from 'react'
 import { MapaTeselas } from '../mapa/MapaTeselas'
@@ -10,10 +11,17 @@ import { BarraSuperior } from './BarraSuperior'
 import { Brujula } from './Brujula'
 import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
+import { Cruceta } from './Cruceta'
+
+const ALERTA_BORDE = {
+  id: 'interfaz-borde-zona',
+  nivel: 'aviso',
+  mensaje: 'Llegaste al borde del tramo de la demo: no se puede seguir en esa dirección.',
+}
 
 export function Monitoreo({ viaje, onSalir }) {
-  const { lectura, sensores, alertas: delBackend, sinConexion, enMarcha, velocidad, acciones } = useMonitoreo(viaje)
-  const { alertas, cerrar } = useAlertas(delBackend)
+  const { lectura, sensores, alertas: delBackend, sinConexion, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones } = useMonitoreo(viaje, onSalir)
+  const { alertas, cerrar } = useAlertas(lectura.fueraDeZona ? [ALERTA_BORDE, ...delBackend] : delBackend)
   const [z, setZ] = useState(15)
 
   const { camino, paradas } = sensores
@@ -25,13 +33,11 @@ export function Monitoreo({ viaje, onSalir }) {
       <MapaTeselas className="monitoreo__mapa" capas={viaje.capas} centro={lectura.posicion} z={z}>
         {(proyectar, tam) => {
           const pts = (lista) => lista.map((p) => proyectar(p.lon, p.lat).map((n) => n.toFixed(1)).join(',')).join(' ')
-          const hecho = [...camino.slice(0, lectura.indice + 1), lectura.posicion]
-          const falta = [lectura.posicion, ...camino.slice(lectura.indice + 1)]
           const [bx, by] = proyectar(viaje.aterrizaje.lon, viaje.aterrizaje.lat)
           return (
             <>
-              <polyline points={pts(falta)} className="hud-pendiente" />
-              <polyline points={pts(hecho)} className="hud-recorrido" />
+              <polyline points={pts(camino)} className="hud-pendiente" />
+              <polyline points={pts(lectura.rastro)} className="hud-recorrido" />
               {viaje.puntos.map((p, i) => {
                 const [x, y] = proyectar(p.lon, p.lat)
                 return (
@@ -56,7 +62,7 @@ export function Monitoreo({ viaje, onSalir }) {
       </MapaTeselas>
 
       <div className="hud">
-        <BarraSuperior t={lectura.t} enMarcha={enMarcha} velocidad={velocidad} acciones={acciones} onSalir={onSalir} />
+        <BarraSuperior t={lectura.t} enMarcha={enMarcha} velocidad={velocidad} modo={modo} controlRemoto={controlRemoto} codigoSesion={codigoSesion} acciones={acciones} onSalir={onSalir} />
         <Brujula rumbo={lectura.rumbo} />
         <Alertas alertas={alertas} onCerrar={cerrar} sinConexion={sinConexion} />
 
@@ -65,10 +71,13 @@ export function Monitoreo({ viaje, onSalir }) {
           <section className="panel objetivo" aria-label="Recorrido">
             <span className="etiqueta">Destino</span>
             <span className="objetivo__nombre">{destino?.nombre ?? '—'}</span>
-            <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.total - lectura.recorrido)}</span></div>
+            <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
             <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
           </section>
         </div>
+
+        {/* con control remoto conectado, la cruceta no se muestra para no tapar la demo */}
+        {modo === 'manual' && !controlRemoto && <Cruceta onMover={acciones.moverPad} />}
 
         <div className="panel escala-hud">
           <div className="escala">

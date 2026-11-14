@@ -13,7 +13,7 @@ export function Minimapa({ capas, camino, paradas, aterrizaje, lectura }) {
         <MapaTeselas capas={capas} encuadre={encuadre} etiqueta="Minimapa con el recorrido completo y la posición del astronauta">
           {(proyectar) => {
             const pts = (lista) => lista.map((p) => proyectar(p.lon, p.lat).map((n) => n.toFixed(1)).join(',')).join(' ')
-            const hecho = [...camino.slice(0, lectura.indice + 1), lectura.posicion]
+            const hecho = lectura.rastro
             const [ax, ay] = proyectar(lectura.posicion.lon, lectura.posicion.lat)
             const [bx, by] = proyectar(aterrizaje.lon, aterrizaje.lat)
             return (

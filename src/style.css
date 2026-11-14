@@ -281,9 +281,24 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .mision__salir { align-self: flex-start; padding: 0; }
 .controles { display: flex; flex-wrap: wrap; gap: 8px; }
 .controles > button { height: 44px; }
-.velocidades { display: flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
-.velocidades button { height: 42px; border: 0; border-radius: 0; background: transparent; font-family: "JetBrains Mono", monospace; }
-.velocidades button[aria-pressed="true"] { background: var(--acento); color: #1a0f0a; font-weight: 600; }
+.mision__grupo { display: flex; flex-direction: column; gap: 6px; }
+.segmentado { display: flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+.segmentado button { height: 42px; border: 0; border-radius: 0; background: transparent; }
+.segmentado--mono button { font-family: "JetBrains Mono", monospace; }
+.segmentado button[aria-pressed="true"] { background: var(--acento); color: #1a0f0a; font-weight: 600; }
+
+.mision__enlace { font-size: 13px; color: var(--texto-suave); }
+.mision__enlace:hover { color: var(--texto); }
+.mision__remoto { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8fd19e; }
+.punto-estado { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+
+/* Cruceta del modo manual */
+.cruceta { grid-column: 2; grid-row: 2; align-self: end; justify-self: center; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cruceta__botones { display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 4px; }
+.cruceta__botones button { width: 48px; height: 48px; padding: 0; font-size: 20px; touch-action: none; user-select: none; }
+.cruceta__botones button:active { background: var(--acento); color: #1a0f0a; }
+.cruceta__centro { border-radius: 50%; margin: 14px; background: var(--acento); opacity: 0.6; }
+.cruceta__ayuda { margin: 0; font-size: 11px; color: var(--texto-suave); text-align: center; max-width: 180px; }
 
 .brujula {
   grid-column: 2; grid-row: 1; justify-self: center; align-self: start;
@@ -362,4 +377,101 @@ input.punto__nombre:hover { border-color: var(--borde); }
   .brujula { grid-column: 1 / span 2; grid-row: 2; }
   .alertas { grid-column: 1 / span 2; grid-row: 3; }
   .escala-hud { grid-column: 1 / span 2; grid-row: 4; }
+  .cruceta { grid-column: 1 / span 2; grid-row: 3; align-self: end; }
 }
+
+/* =================================================================
+   Control remoto (#control)
+   ================================================================= */
+.control {
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  touch-action: manipulation;
+}
+.control__cabecera { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.control__titulo { margin: 0; font: 600 24px "Space Grotesk", sans-serif; }
+.control__estado { margin: 6px 0 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--aviso); }
+.control__estado--ok { color: #8fd19e; }
+.control__modo { align-self: center; }
+.control__modo button { height: 44px; padding: 0 16px; }
+.control__ayuda { margin: 0; font-size: 13px; color: var(--texto-suave); max-width: 320px; }
+
+.joystick {
+  position: relative;
+  width: min(280px, 78vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--panel-2) 0%, var(--panel) 70%);
+  border: 2px solid var(--borde);
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.joystick:active { cursor: grabbing; }
+.joystick__marca { position: absolute; font: 600 13px "Space Grotesk", sans-serif; color: var(--texto-suave); }
+.joystick__marca--n { top: 10px; color: var(--acento); }
+.joystick__palanca {
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--acento);
+  border: 3px solid #fff4ec;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.control__datos { margin: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.control__datos div {
+  display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px;
+  border-radius: 8px; background: var(--panel); border: 1px solid var(--borde); font-size: 13px; text-align: right;
+}
+.control__datos dt { color: var(--texto-suave); text-align: left; }
+.control__datos dd { margin: 0; }
+.control__fila { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.control__fila > button { height: 44px; min-width: 96px; }
+.control__alertas { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.mision__remoto-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.mision__codigo { font-size: 13px; color: var(--texto-suave); }
+.mision__codigo strong { color: var(--texto); font-size: 15px; letter-spacing: 0.08em; }
+.control__subtitulo { margin: 0; font: 600 18px "Space Grotesk", sans-serif; }
+.control__elegir { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.control__demos { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.control__demos .boton { height: 52px; width: 100%; font-size: 15px; }
+.control__codigo { width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.control__codigo-fila { display: flex; gap: 8px; }
+.control__codigo-fila input { flex: 1; font-size: 20px; letter-spacing: 0.3em; text-align: center; height: 48px; }
+.control__codigo-fila button { height: 48px; }
+.control__estado .boton--texto { height: 28px; text-decoration: underline; }
+.joystick--apagado { opacity: 0.4; cursor: not-allowed; }
+.cabecera__telefono { margin: 10px 0 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--texto-suave); }
+.cabecera__telefono strong { color: var(--texto); letter-spacing: 0.08em; }
+.cabecera__telefono--ok { color: #8fd19e; }
+.control__plan { width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.control__plan .control__ayuda { align-self: center; text-align: center; margin: 4px 0 8px; }
+.control__plan .paso { padding: 16px 4px; }
+.control__mapa { position: relative; width: 100%; height: 55vh; min-height: 320px; border-radius: 12px; overflow: hidden; display: flex; border: 1px solid var(--borde); }
+.control__mapa .mapa-planificacion { height: 100%; flex: 1; width: 100%; }
+.control__mapa .barra-mapa { left: 8px; bottom: 8px; gap: 8px; }
+.control__mapa .zoom { right: 8px; bottom: 8px; }
+.control__mapa .modo { top: 8px; }
+.control__pie { position: sticky; bottom: 0; padding: 12px 0; background: var(--fondo); display: flex; flex-direction: column; gap: 8px; }
+.control__pie .boton { height: 52px; width: 100%; font-size: 16px; }
+.control__mapa .barra-mapa > .mono { display: none; }
+
+/* Resultado del servicio de análisis */
+.metrica__detalle { font-size: 11px; color: var(--texto-suave); }
+.aviso-ruta {
+  padding: 10px 12px; border-radius: 8px; font-size: 13px;
+  background: rgba(242, 193, 78, 0.08); border: 1px solid rgba(242, 193, 78, 0.5); color: #fbecc4;
+}
+.aviso-ruta ul { margin: 6px 0 0; padding-left: 18px; }
+.nota--aviso { color: var(--aviso); }

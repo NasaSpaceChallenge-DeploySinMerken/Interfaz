@@ -1,10 +1,9 @@
-// Métricas de la ruta calculada por el backend.
+// Métricas de la ruta calculada.
 //
-// Con la API real, la validación devuelve distancia y elevación; el resto
-// (tiempo, oxígeno, esfuerzo, pendiente) llega después con el análisis del
-// equipo 3. Lo que todavía no llegó se muestra como pendiente.
-
-import { usaBackendFalso } from '../api/cliente'
+// Según la fuente (resultado.fuente):
+// - 'analisis': servicio de análisis (en desarrollo): ruta por el terreno, tiempo y oxígeno.
+// - 'mapa': API del equipo del mapa: distancia y elevación; el resto llega con el análisis.
+// - 'mock': backend falso, valores de ejemplo.
 
 const ESFUERZO = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' }
 const ESTADO = {
@@ -12,38 +11,65 @@ const ESTADO = {
   forwarded: 'Ruta enviada al equipo 3. Esperando el análisis…',
   analyzed: null,
 }
+const NOTA = {
+  analisis: 'Ruta calculada por el servicio de análisis (en desarrollo): sigue el terreno y elige el orden de las visitas. El oxígeno es una estimación exploratoria.',
+  mapa: 'Ruta validada por la API del equipo del mapa. Tramos en línea recta entre tus puntos.',
+  mock: 'Backend falso: tramos en línea recta y valores de ejemplo. El backend real calcula la ruta según el terreno.',
+}
 
 const km = (m) => `${(m / 1000).toFixed(2)} km`
 const duracion = (min) => `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, '0')} min`
 
-function Metrica({ nombre, valor, ancha = false }) {
+function Metrica({ nombre, valor, detalle, vacio, ancha = false }) {
   return (
     <div className={`metrica ${ancha ? 'metrica--ancha' : ''}`}>
       <span className="metrica__nombre">{nombre}</span>
       {valor == null
-        ? <span className="metrica__valor metrica__valor--pendiente">Pendiente del análisis</span>
+        ? <span className="metrica__valor metrica__valor--pendiente">{vacio}</span>
         : <span className="metrica__valor">{valor}</span>}
+      {detalle && <span className="metrica__detalle">{detalle}</span>}
     </div>
   )
 }
 
 export function Metricas({ resultado, nombres }) {
-  const { metricas: m, tramos, estadoAnalisis } = resultado
+  const { metricas: m, tramos, estadoAnalisis, fuente, inalcanzables = [], advertencia } = resultado
   const estado = ESTADO[estadoAnalisis]
+  // si el análisis ya llegó y un dato falta, es que ese backend no lo entrega
+  const vacio = estadoAnalisis === 'analyzed' ? 'No disponible' : 'Pendiente del análisis'
   const hayElevacion = m.elevacionMinM != null
   const hayDesnivel = tramos.some((t) => t.desnivelM != null)
+  const pendiente = m.pendienteMaxGrados != null
+    ? `${m.pendienteMaxGrados}°`
+    : m.limitePendienteGrados != null ? `menos de ${m.limitePendienteGrados}°` : null
 
   return (
     <>
       {estado && <p className="estado-analisis" role="status">{estado}</p>}
 
+      {inalcanzables.length > 0 && (
+        <div className="aviso-ruta" role="alert">
+          <strong>No se puede llegar a:</strong>
+          <ul>
+            {inalcanzables.map((v) => <li key={v.id}>{nombres[v.id] ?? v.id}: {v.motivo}</li>)}
+          </ul>
+        </div>
+      )}
+
       <div className="metricas">
-        <Metrica nombre="Distancia" valor={km(m.distanciaM)} />
-        <Metrica nombre="Duración" valor={m.duracionMin != null ? duracion(m.duracionMin) : null} />
-        <Metrica nombre="Oxígeno necesario" valor={m.oxigenoPct != null ? `${m.oxigenoPct} %` : null} />
-        <Metrica nombre="Esfuerzo" valor={m.esfuerzo != null ? (ESFUERZO[m.esfuerzo] ?? m.esfuerzo) : null} />
-        <Metrica nombre="Pendiente máxima" valor={m.pendienteMaxGrados != null ? `${m.pendienteMaxGrados}°` : null} ancha={!hayElevacion} />
-        {hayElevacion && <Metrica nombre="Elevación" valor={`${m.elevacionMinM} a ${m.elevacionMaxM} m`} />}
+        <Metrica nombre="Distancia" valor={km(m.distanciaM)} vacio={vacio} />
+        <Metrica nombre="Duración" valor={m.duracionMin != null ? duracion(m.duracionMin) : null} vacio={vacio} />
+        <Metrica
+          nombre="Oxígeno necesario"
+          valor={m.oxigenoPct != null ? `${m.oxigenoPct} %` : null}
+          detalle={[m.oxigenoDetalle, m.oxigenoAlcanza === false ? 'sin reserva suficiente' : null].filter(Boolean).join(' · ') || null}
+          vacio={vacio}
+        />
+        {m.salidas > 1
+          ? <Metrica nombre="Salidas" valor={`${m.salidas}`} detalle="recarga en el aterrizaje" vacio={vacio} />
+          : <Metrica nombre="Esfuerzo" valor={m.esfuerzo != null ? (ESFUERZO[m.esfuerzo] ?? m.esfuerzo) : null} vacio={vacio} />}
+        <Metrica nombre="Pendiente máxima" valor={pendiente} vacio={vacio} ancha={!hayElevacion} />
+        {hayElevacion && <Metrica nombre="Elevación" valor={`${m.elevacionMinM} a ${m.elevacionMaxM} m`} vacio={vacio} />}
       </div>
 
       <table className="tramos">
@@ -70,11 +96,8 @@ export function Metricas({ resultado, nombres }) {
         </tbody>
       </table>
 
-      <p className="nota">
-        {usaBackendFalso
-          ? 'Backend falso: tramos en línea recta y valores de ejemplo. El backend real calcula la ruta según el terreno.'
-          : 'Ruta validada por la API del equipo del mapa. Tramos en línea recta entre tus puntos.'}
-      </p>
+      {advertencia && <p className="nota nota--aviso">{advertencia}</p>}
+      <p className="nota">{NOTA[fuente] ?? NOTA.mock}</p>
     </>
   )
 }
