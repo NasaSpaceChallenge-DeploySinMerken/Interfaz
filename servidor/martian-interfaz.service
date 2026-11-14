@@ -1,5 +1,7 @@
 # Servicio systemd del servidor de la interfaz.
-# Instalar (ajustar User y WorkingDirectory si el repo está en otra carpeta):
+# Con el despliegue automático (.github/workflows/deploy-aws.yml) se instala solo,
+# con User y WorkingDirectory ajustados a la máquina.
+# A mano (ajustar User y WorkingDirectory si el repo está en otra carpeta):
 #   sudo cp servidor/martian-interfaz.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now martian-interfaz

@@ -31,7 +31,34 @@ BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 npm
 
 Abre `http://localhost:8080`. El teléfono, en la misma red, abre `http://<ip-del-computador>:8080/#control`.
 
-## Desplegar en AWS (EC2)
+## Desplegar en AWS automáticamente (CI/CD)
+
+El workflow [.github/workflows/deploy-aws.yml](../.github/workflows/deploy-aws.yml) despliega en cada push a `main`:
+
+1. GitHub Actions corre `npm ci` y `npm run build:servidor`.
+2. Copia por SSH la página construida y el servidor a la máquina (`~/martian-interfaz/versiones/<fecha>-<commit>`) y apunta `~/martian-interfaz/actual` a esa versión.
+3. Instala o actualiza el servicio `systemd`, lo reinicia y comprueba que `/salud` responda. Si no responde, muestra el registro y el workflow falla.
+4. Guarda solo las 3 últimas versiones.
+
+En la máquina **no se clona el repo ni se instala nada con npm**: solo hace falta Node.
+
+### Puesta en marcha (una sola vez)
+
+1. **En la máquina**: instalar Node 18 o superior (`sudo dnf install -y nodejs` en Amazon Linux 2023, `sudo apt-get install -y nodejs` en Ubuntu) y comprobar con `node --version`.
+2. **En GitHub**, Settings → Secrets and variables → Actions → **Secrets**:
+   - `AWS_HOST`: IP o nombre de la máquina.
+   - `AWS_USER`: usuario SSH (`ec2-user` en Amazon Linux, `ubuntu` en Ubuntu).
+   - `AWS_SSH_KEY`: la clave privada SSH completa (el contenido del `.pem`).
+   - Opcional, en **Variables**: `AWS_DIR` si se quiere otra carpeta que `/home/<usuario>/martian-interfaz`.
+3. **Grupo de seguridad de la máquina**: el puerto 22 (SSH) tiene que aceptar conexiones de GitHub Actions, y el puerto del servidor (`8080`) las de quien abra la página (o nada, si se usa un túnel de Cloudflare).
+4. **Lanzar el primer despliegue**: hacer push a `main`, o en la pestaña Actions elegir "Desplegar en AWS" → "Run workflow".
+5. **Revisar la configuración**: el primer despliegue crea `/etc/martian-interfaz.env` desde el ejemplo. Revisar las direcciones de los backends y, si se cambia algo, `sudo systemctl restart martian-interfaz`.
+
+Sin esos secrets, el workflow construye pero no despliega, y no falla.
+
+El usuario SSH tiene que poder usar `sudo` sin contraseña (así viene en EC2) para instalar el servicio.
+
+## Desplegar en AWS a mano (sin CI/CD)
 
 ### 1. La máquina
 
@@ -94,7 +121,7 @@ grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' tunel.log
 
 Esa dirección `https://….trycloudflare.com` es la de la demo, para el computador y para el teléfono (`…/#control`). La dirección cambia si el túnel se reinicia; para una fija, usar un túnel con nombre o un dominio propio.
 
-### Actualizar a una versión nueva
+### Actualizar a una versión nueva (despliegue a mano)
 
 ```bash
 cd ~/Interfaz

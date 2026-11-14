@@ -1,0 +1,138 @@
+# Construye la interfaz para el servidor propio y la despliega en AWS (EC2) por SSH
+# en cada push a main. En la máquina solo hace falta Node 18+: no se clona el repo
+# ni se instala nada con npm; el workflow copia la página construida y el servidor.
+#
+# Configurar en GitHub: Settings → Secrets and variables → Actions
+#   Secrets:
+#     AWS_HOST      IP o nombre de la máquina (ej.: 52.0.36.196)
+#     AWS_USER      usuario SSH (ec2-user en Amazon Linux, ubuntu en Ubuntu)
+#     AWS_SSH_KEY   clave privada SSH (el contenido completo del .pem)
+#   Variables (opcional):
+#     AWS_DIR       carpeta en la máquina (por defecto /home/<usuario>/martian-interfaz)
+#
+# Sin esos secrets, el workflow construye pero no despliega (no falla).
+# Detalles y primera puesta en marcha: servidor/README.md
+
+name: Desplegar en AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: aws
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Construir la interfaz para el servidor propio
+        run: |
+          npm ci
+          npm run build:servidor
+
+      - name: Empaquetar
+        run: |
+          mkdir -p paquete
+          cp -r dist servidor package.json paquete/
+          tar -czf interfaz.tar.gz -C paquete .
+          ls -lh interfaz.tar.gz
+
+      - name: ¿Hay datos de la máquina?
+        id: datos
+        env:
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_USER: ${{ secrets.AWS_USER }}
+          AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+        run: |
+          if [ -n "$AWS_HOST" ] && [ -n "$AWS_USER" ] && [ -n "$AWS_SSH_KEY" ]; then
+            echo "listo=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "listo=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::Faltan los secrets AWS_HOST, AWS_USER o AWS_SSH_KEY: se construyó pero no se desplegó."
+          fi
+
+      - name: Preparar SSH
+        if: steps.datos.outputs.listo == 'si'
+        env:
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AWS_SSH_KEY" > ~/.ssh/aws
+          chmod 600 ~/.ssh/aws
+          ssh-keyscan -H "$AWS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copiar y reiniciar el servicio
+        if: steps.datos.outputs.listo == 'si'
+        env:
+          AWS_HOST: ${{ secrets.AWS_HOST }}
+          AWS_USER: ${{ secrets.AWS_USER }}
+          AWS_DIR: ${{ vars.AWS_DIR }}
+          VERSION: ${{ github.sha }}
+        run: |
+          DESTINO="${AWS_DIR:-/home/$AWS_USER/martian-interfaz}"
+          SSH="ssh -i ~/.ssh/aws -o BatchMode=yes $AWS_USER@$AWS_HOST"
+
+          scp -i ~/.ssh/aws -o BatchMode=yes interfaz.tar.gz "$AWS_USER@$AWS_HOST:/tmp/interfaz-$VERSION.tar.gz"
+
+          $SSH bash -s -- "$DESTINO" "$VERSION" "$AWS_USER" <<'REMOTO'
+          set -euo pipefail
+          DESTINO="$1"; VERSION="$2"; USUARIO="$3"
+          VERSIONES="$DESTINO/versiones"
+
+          command -v node >/dev/null || { echo "Falta Node 18+ en la máquina (ver servidor/README.md)"; exit 1; }
+
+          # 1. Descomprimir la versión nueva y apuntar "actual" a ella
+          #    (el nombre empieza con la fecha del despliegue: así se ordenan)
+          CARPETA="$(date -u +%Y%m%d%H%M%S)-$VERSION"
+          mkdir -p "$VERSIONES/$CARPETA"
+          tar -xzf "/tmp/interfaz-$VERSION.tar.gz" -C "$VERSIONES/$CARPETA"
+          rm -f "/tmp/interfaz-$VERSION.tar.gz"
+          ln -sfn "$VERSIONES/$CARPETA" "$DESTINO/actual"
+
+          # 2. Configuración: si no existe, se crea desde el ejemplo (revisarla después)
+          if [ ! -f /etc/martian-interfaz.env ]; then
+            sudo cp "$DESTINO/actual/servidor/interfaz.env.ejemplo" /etc/martian-interfaz.env
+            echo "! Se creó /etc/martian-interfaz.env desde el ejemplo: revisa las direcciones de los backends."
+          fi
+
+          # 3. Servicio systemd con el usuario y la carpeta reales
+          sed -e "s#^User=.*#User=$USUARIO#" \
+              -e "s#^WorkingDirectory=.*#WorkingDirectory=$DESTINO/actual#" \
+              "$DESTINO/actual/servidor/martian-interfaz.service" > /tmp/martian-interfaz.service
+          sudo mv /tmp/martian-interfaz.service /etc/systemd/system/martian-interfaz.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable martian-interfaz >/dev/null 2>&1 || true
+          sudo systemctl restart martian-interfaz
+
+          # 4. Comprobar que responde
+          PUERTO=$(grep -E '^PORT=' /etc/martian-interfaz.env 2>/dev/null | cut -d= -f2 || true)
+          for i in $(seq 1 15); do
+            if curl -fsS "http://localhost:${PUERTO:-8080}/salud" >/dev/null 2>&1; then
+              echo "✓ Servidor de la interfaz respondiendo (versión $VERSION)"
+              curl -fsS "http://localhost:${PUERTO:-8080}/salud"; echo
+              break
+            fi
+            sleep 1
+            if [ "$i" = 15 ]; then
+              echo "✗ El servidor no respondió. Últimas líneas del registro:"
+              sudo journalctl -u martian-interfaz -n 30 --no-pager
+              exit 1
+            fi
+          done
+
+          # 5. Guardar solo las 3 últimas versiones (nunca se borra la activa)
+          ls -1 "$VERSIONES" | sort -r | tail -n +4 | while read -r vieja; do
+            [ "$vieja" = "$CARPETA" ] || rm -rf "${VERSIONES:?}/$vieja"
+          done
+          REMOTO
