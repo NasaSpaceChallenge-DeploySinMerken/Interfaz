@@ -1,7 +1,8 @@
-// Simulación del astronauta y de los sensores del traje.
+// Movimiento simulado del astronauta.
 //
-// En la demo no hay traje real: esto mueve al astronauta e inventa las lecturas
-// de los sensores. Cada segundo, useMonitoreo lee el estado y lo manda al backend.
+// En la demo no hay traje real: esto solo mueve al astronauta (por la ruta o con
+// el control manual). Cada segundo, useMonitoreo manda la posición al backend de
+// monitoreo, que calcula el oxígeno y las alertas. Aquí no se simula ningún sensor.
 //
 // Dos modos de control:
 // - 'auto': el astronauta sigue la ruta que devolvió el backend.
@@ -13,12 +14,9 @@ import { distancia, dentroDe, rad, rumbo, RADIO_MARTE } from '../mapa/geo'
 import { TRAMO } from '../datos/gale'
 
 const VEL_M_S = 1.0 // velocidad de caminata con traje
-const O2_POR_MIN = 0.3 // consumo real, algo mayor al estimado en la planificación
 const LLEGADA_M = 25
 const PASO_RASTRO_M = 5
 
-const onda = (t, periodo) => Math.sin((2 * Math.PI * t) / periodo)
-const redondear = (n, d = 1) => Math.round(n * 10 ** d) / 10 ** d
 
 // mueve un punto `metros` hacia la dirección (x: este, y: norte), con |(x, y)| = 1
 function desplazar(p, x, y, metros) {
@@ -79,7 +77,7 @@ export function crearSensoresSimulados(viaje) {
     return { pos: { lon: a.lon + (b.lon - a.lon) * f, lat: a.lat + (b.lat - a.lat) * f }, rumbo: rumbo(a, b) }
   }
 
-  let t, modo = 'auto', avance, odometro, pos, rumboActual, siguiente, rastro, fueraDeZona, tRecarga
+  let t, modo = 'auto', avance, odometro, pos, rumboActual, siguiente, rastro, fueraDeZona
 
   function reiniciar() {
     t = 0
@@ -90,13 +88,10 @@ export function crearSensoresSimulados(viaje) {
     siguiente = 0
     rastro = [{ ...pos }]
     fueraDeZona = false
-    tRecarga = 0 // momento de la última recarga del tanque
   }
   reiniciar()
 
   function llegar() {
-    // al volver al aterrizaje entre salidas, se recarga el tanque
-    if (paradas[siguiente].recarga) tRecarga = t
     siguiente++
   }
 
@@ -193,13 +188,6 @@ export function crearSensoresSimulados(viaje) {
         salidas,
         // paradas que faltan de la salida actual (para las métricas del backend 2)
         pendientes: pendientesDeLaSalida(),
-        sensores: {
-          oxigenoPct: redondear(Math.max(0, 100 - O2_POR_MIN * ((t - tRecarga) / 60))),
-          temperaturaTraje: redondear(22 + 11 * onda(t, 2400)),
-          temperaturaExterior: redondear(-60 + 20 * onda(t, 7200)),
-          pulso: Math.round(100 + 35 * onda(t, 900) + 6 * onda(t, 37)),
-          spo2: Math.round(97 - 5 * Math.max(0, onda(t, 1300))),
-        },
       }
     },
   }

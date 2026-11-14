@@ -495,3 +495,8 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .viaje__falta { color: var(--critico); }
 .lateral { max-height: calc(100vh - 140px); overflow-y: auto; }
 .tramos__salida { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--acento); }
+
+/* Avisos de la demo dentro de la lista de alertas (no son alertas del backend) */
+.alerta--sistema { border-color: rgba(108, 182, 255, 0.5); }
+.alerta--sistema .alerta__nivel { color: var(--base); }
+.alerta__accion { margin-top: 8px; align-self: flex-start; height: 36px; }

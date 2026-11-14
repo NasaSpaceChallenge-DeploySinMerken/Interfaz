@@ -13,8 +13,12 @@
 //   feat/javier/analisis). Da las MÉTRICAS DURANTE EL VIAJE: desde la posición
 //   actual hasta el final, POST /gale/analyze (distancia, tiempo, oxígeno,
 //   pendientes y peligros de lo que falta).
-// - VITE_MONITOREO_URL: backend de monitoreo (todavía no existe). POST /api/monitoreo
-//   con sensores y posición, devuelve las alertas.
+// - VITE_MONITOREO_URL: monitoreo en tiempo real (servicio de análisis, Ingrid;
+//   POST /api/monitoreo). Recibe la posición cada segundo con el idRuta que
+//   devolvió /plan y responde el oxígeno y las alertas. Suele ser la misma
+//   dirección que VITE_ANALISIS_URL.
+// Durante la caminata no hay datos de ejemplo: si un backend no está configurado
+// o no responde, la interfaz lo muestra.
 //
 // Este archivo traduce el formato de cada backend al que usa la interfaz
 // (Contrato_API.md), así el resto del front no cambia.
@@ -55,8 +59,6 @@ export const usaBackendFalso = API == null
 export const usaMetricasFalsas = ANALISIS == null
 export const usaMonitoreoFalso = MONITOREO == null
 
-// el servidor propio responde 503 si ese backend no está configurado allá
-const noConfigurado = (e) => e?.codigo === 'BACKEND_NO_CONFIGURADO' || e?.status === 503
 
 // Más que el límite de 60 s que tiene el backend 1 para el análisis, para que
 // llegue su propio mensaje de error si el análisis se demora.
@@ -130,6 +132,8 @@ function adaptarRutaMapa(ruta, secuencia) {
     // validated → forwarded → analyzed
     estadoAnalisis: ruta.status,
     analisis,
+    // el monitoreo necesita el idRuta de /plan: estas rutas no se pueden monitorear
+    idMonitoreo: null,
   }
 }
 
@@ -155,7 +159,6 @@ async function planificarConRoutes({ aterrizaje, puntos, volver }) {
         route: secuencia.slice(1).map(aPar),
       }),
     })
-    mock.registrarRuta(route.id, aterrizaje, route.path) // para las alertas falsas del monitoreo
     return adaptarRutaMapa(route, secuencia)
   } catch (e) {
     // los índices del error son posiciones en [inicio, ...ruta]: se traducen a nombres
@@ -185,7 +188,9 @@ function adaptarPlan(plan, puntos) {
 
   return {
     fuente: 'plan',
-    idRuta: `plan-${Date.now()}`,
+    idRuta: plan.idRuta ?? null,
+    // idRuta para POST /api/monitoreo; null si el análisis no la puede monitorear
+    idMonitoreo: plan.idRuta ?? null,
     ruta: { type: 'LineString', coordinates: plan.route },
     metricas: {
       distanciaM: Math.round(plan.summary.distance_m),
@@ -245,7 +250,6 @@ async function planificarConPlan({ aterrizaje, puntos, volver }) {
     throw error
   }
 
-  mock.registrarRuta(resultado.idRuta, aterrizaje, plan.route) // para las alertas falsas del monitoreo
   return resultado
 }
 
@@ -324,35 +328,44 @@ export async function obtenerMetricasViaje({ posicion, pendientes }) {
     return distanciaKm(aPar(anterior), aPar(p)) * 1000 > 2
   })
   if (!destinos.length) return null
-  if (ANALISIS == null) return mock.metricasViaje({ posicion, destinos })
-  try {
-    const r = await pedir(ANALISIS, '/gale/analyze', {
-      method: 'POST',
-      body: JSON.stringify({
-        points: [aPar(posicion), ...destinos.map(aPar)],
-        settings: { speed_kmh: 2.5, stop_minutes: 0 },
-      }),
-    })
-    return adaptarMetricas(r, destinos)
-  } catch (e) {
-    // sin backend 2 configurado en el servidor propio: estimación local
-    if (SERVIDOR_PROPIO && noConfigurado(e)) return mock.metricasViaje({ posicion, destinos })
-    throw e
-  }
+  if (ANALISIS == null) throw new Error('El backend 2 (análisis) no está configurado.')
+  const r = await pedir(ANALISIS, '/gale/analyze', {
+    method: 'POST',
+    body: JSON.stringify({
+      points: [aPar(posicion), ...destinos.map(aPar)],
+      settings: { speed_kmh: 2.5, stop_minutes: 0 },
+    }),
+  })
+  return adaptarMetricas(r, destinos)
 }
 
-// Fase 2: manda posición y sensores al backend de monitoreo, devuelve las alertas activas.
-// Sin VITE_MONITOREO_URL, datos falsos.
-export async function enviarMonitoreo({ idRuta, t, posicion, sensores }) {
-  if (MONITOREO == null) return mock.enviarMonitoreo({ idRuta, t, posicion, sensores })
-  const respuesta = await fetch(`${MONITOREO}/api/monitoreo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ idRuta, t, posicion, sensores }),
-  })
-  // sin backend de monitoreo configurado en el servidor propio: alertas de ejemplo
-  if (SERVIDOR_PROPIO && respuesta.status === 503) return mock.enviarMonitoreo({ idRuta, t, posicion, sensores })
-  if (!respuesta.ok) throw new Error(`El backend de monitoreo respondió ${respuesta.status}`)
-  const cuerpo = await respuesta.json()
-  return { alertas: cuerpo.alertas ?? [] }
+// Fase 2: monitoreo en tiempo real (POST /api/monitoreo). Se llama cada segundo con
+// el idRuta de /plan, el tiempo de misión y la posición. El backend calcula el
+// oxígeno y las alertas: la interfaz no simula ningún sensor.
+// Errores: error.codigo = 'RUTA_DESCONOCIDA' si el backend ya no tiene la ruta
+// (se reinició: hay que volver a planificar).
+export async function enviarMonitoreo({ idRuta, t, posicion }) {
+  if (MONITOREO == null) throw new Error('El monitoreo no está configurado.')
+  let r
+  try {
+    r = await pedir(MONITOREO, '/api/monitoreo', {
+      method: 'POST',
+      body: JSON.stringify({ idRuta, t: Math.round(t), posicion, sensores: {} }),
+    })
+  } catch (e) {
+    if (e.status === 404 && /idruta/i.test(e.message)) e.codigo = 'RUTA_DESCONOCIDA'
+    else if (e.status === 404) e.message = 'El backend no tiene el monitoreo (POST /api/monitoreo).'
+    throw e
+  }
+  return {
+    alertas: r.alertas ?? [],
+    oxigenoPct: r.oxigenoPct ?? null,
+    oxigenoRestanteG: r.oxigenoRestanteG ?? null,
+    oxigenoGastadoG: r.oxigenoGastadoG ?? null,
+    costoRegresoG: r.costoRegresoG ?? null,
+    costoDesvioG: r.costoDesvioG ?? null,
+    reservaG: r.reservaG ?? null,
+    parado: r.parado ?? false,
+    distanciaARutaM: r.distanciaARutaM ?? null,
+  }
 }

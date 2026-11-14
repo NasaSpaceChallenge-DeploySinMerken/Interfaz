@@ -55,13 +55,14 @@ Todo se configura en `.env.local` (no se sube a git). Sin ninguna variable, todo
 | --- | --- | --- |
 | `VITE_API_URL` | **Backend 1**: API del equipo del mapa | **Calcular la ruta** en la planificación. Con `POST /api/plan` (rama `feat/mapa-layers`), que pasa la ruta al análisis del equipo 3: sigue el terreno, elige el orden, estima el oxígeno, marca las visitas inalcanzables y divide en varias salidas si hace falta. Si ese endpoint no existe, usa el flujo anterior `POST /api/routes`. |
 | `VITE_ANALISIS_URL` | **Backend 2**: servicio de análisis de Javier (**en desarrollo**) | **Métricas durante el viaje**: lo que falta desde la posición actual (distancia, tiempo, oxígeno, pendientes y peligros). |
-| `VITE_MONITOREO_URL` | Backend de monitoreo (todavía no existe) | Recibe sensores y posición cada segundo y devuelve las alertas. |
+| `VITE_MONITOREO_URL` | **Monitoreo en tiempo real** (Ingrid, en el servicio de análisis: misma dirección que el backend 2) | Recibe la posición cada segundo y devuelve el oxígeno, el costo de volver y las alertas. |
 
 Ejemplo de `.env.local` con los dos backends que ya existen:
 
 ```
 VITE_API_URL=http://localhost:3000
 VITE_ANALISIS_URL=http://52.6.216.161:8000
+VITE_MONITOREO_URL=http://52.6.216.161:8000
 ```
 
 ### Publicar con el servidor propio de la interfaz (recomendado)
@@ -188,16 +189,18 @@ Notas:
 
 La traducción de su respuesta está en `src/api/cliente.js` (`obtenerMetricasViaje`).
 
-### Con el backend de monitoreo
+### Monitoreo en tiempo real (Ingrid)
 
-El monitoreo lo hace el backend de otro equipo, distinto de la API del mapa. Cuando esté disponible, se agrega su dirección a `.env.local`:
+El monitoreo está en el servicio de análisis (rama `ingrid-consumo-tiempo-real` de martian-map, `POST /api/monitoreo`; contrato en su `docs/API.md`). **Durante la caminata no hay datos simulados**: la interfaz solo mueve al astronauta (no hay traje real) y todo lo demás lo calcula el backend.
 
-```
-VITE_API_URL=http://localhost:3000
-VITE_MONITOREO_URL=http://localhost:8100
-```
+1. `/plan` (por el backend 1) devuelve un `idRuta`. Si viene en `null` (la ruta no vuelve al aterrizaje), la caminata se puede hacer pero no se monitorea, y el HUD lo indica.
+2. Cada segundo, la interfaz manda `{ idRuta, t, posicion }`, donde `t` son los segundos de misión. "Reiniciar" vuelve a `t = 0`, que el backend toma como una caminata nueva.
+3. Con lo que responde, el HUD muestra el panel **"Oxígeno · monitoreo"** (oxígeno en el tanque, oxígeno para volver, reserva, desvío de la ruta) y **solo las alertas que manda el backend**.
+4. Si el backend se reinicia y pierde la ruta (`404`), aparece el aviso con el botón **"Volver a planificar"**.
 
-La interfaz manda cada segundo `POST {VITE_MONITOREO_URL}/api/monitoreo` con `{ idRuta, t, posicion: { lon, lat }, sensores: { oxigenoPct, temperaturaTraje, temperaturaExterior, pulso, spo2 } }` y espera `{ alertas: [{ id, nivel, mensaje }] }` (detalle en [Contrato_API.md](Contrato_API.md)). Sin esa variable, usa el monitoreo falso.
+El panel **"Lo que falta · backend 2"** sigue saliendo de `/gale/analyze` (distancia, tiempo y pendiente de lo que queda). El oxígeno se toma solo del monitoreo, para no mostrar dos cifras distintas.
+
+Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. Las dos apuntan al servicio de análisis. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
 
 ## Estructura
 
@@ -222,11 +225,11 @@ src/
   monitoreo/                  fase 2: monitorear la caminata
     Monitoreo.jsx             HUD completo
     useMonitoreo.js           avanza la simulación y manda sensores cada 1 s
-    sensoresSimulados.js      posición y lecturas del traje para la demo
+    sensoresSimulados.js      movimiento del astronauta (no simula sensores)
     useAlertas.js, Alertas.jsx
     BarraSuperior.jsx, Brujula.jsx, Minimapa.jsx
     Cruceta.jsx               control manual en pantalla
-    PanelViaje.jsx            lo que falta del viaje (métricas del backend 2)
+    PanelViaje.jsx            oxígeno (monitoreo) y lo que falta del viaje (backend 2)
   control/                    control de la demo desde el teléfono (#control)
     Control.jsx               emparejar con la demo y controlar la caminata
     PlanificacionRemota.jsx   preparar el viaje desde el teléfono

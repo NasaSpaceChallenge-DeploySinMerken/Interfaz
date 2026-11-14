@@ -9,7 +9,7 @@ Hace tres cosas:
 | `/` | Sirve la interfaz ya construida (carpeta `dist/`). |
 | `/api/...` | Reenvía al **backend 1** (API del mapa): `/api/plan`, `/api/routes`, `/api/health`… |
 | `/analisis/...` | Reenvía al **backend 2** (análisis): `/analisis/gale/analyze` → `/gale/analyze`. |
-| `/monitoreo/...` | Reenvía al backend de monitoreo, si se configura. |
+| `/monitoreo/...` | Reenvía al monitoreo en tiempo real (`/monitoreo/api/monitoreo` → `/api/monitoreo` del servicio de análisis). |
 | `/control/...` | Pasa los mensajes entre la demo y el teléfono (control remoto). |
 | `/salud` | Estado del servidor y qué backends tiene configurados. |
 
@@ -19,14 +19,14 @@ El navegador solo habla con este servidor, así que:
 - **el control desde el teléfono funciona en la versión publicada**, sin el servidor de Vite;
 - **solo este servidor necesita `https`** (con un túnel de Cloudflare o un dominio).
 
-Si un backend no está configurado, la interfaz sigue funcionando: la ruta y las métricas usan los datos de ejemplo.
+Si un backend no está configurado o no responde, la interfaz lo muestra en el HUD: durante la caminata no usa datos de ejemplo.
 
 ## Probarlo en el computador
 
 ```bash
 npm install
 npm run build:servidor
-BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 npm start
+BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 BACKEND_MONITOREO_URL=http://52.6.216.161:8000 npm start
 ```
 
 Abre `http://localhost:8080`. El teléfono, en la misma red, abre `http://<ip-del-computador>:8080/#control`.

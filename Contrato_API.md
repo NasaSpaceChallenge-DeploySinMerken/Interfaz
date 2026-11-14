@@ -1,6 +1,6 @@
 # Contrato entre la interfaz y el backend
 
-**Estado:** propuesta original de la interfaz. El equipo del mapa ya expone su propia API (`martian-map`, rama `mapa-nacho-marti`, `docs/API.md`) con otro formato. La interfaz se adapta a ella en `src/api/cliente.js` (ver el README). De esta propuesta sigue pendiente **el monitoreo** (`POST /api/monitoreo`), que todavía no existe y se simula con datos falsos.
+**Estado:** propuesta original de la interfaz. Los backends ya tienen su propio contrato (`docs/API.md` en martian-map), y la interfaz se adapta a él en `src/api/cliente.js` (ver el README). El monitoreo lo implementó Ingrid en el servicio de análisis con este mismo formato, con dos diferencias: el `idRuta` es el que devuelve `/plan`, y el backend calcula el oxígeno por su cuenta (no usa los `sensores`).
 **Zona de la demo:** Cráter Gale, 137.30–137.60° E y 4.50–4.75° S, con los datos de Mars Trek: *MRO CTX, Gale Crater Mosaic* y *MRO HiRISE, Gale Crater DEM*.
 
 Coordenadas siempre en grados decimales: `lon` este positivo y `lat` sur negativo.

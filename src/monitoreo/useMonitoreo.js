@@ -3,8 +3,10 @@
 // - Cada cuadro avanza la simulación según la velocidad (x1, x10, x60).
 //   En modo manual, la dirección sale del teclado (WASD o flechas), de un
 //   joystick conectado (Gamepad API) o de la cruceta en pantalla.
-// - Cada 1 s real manda posición y sensores al backend de monitoreo y guarda
-//   las alertas. Si el backend no responde, lo marca sin cortar la caminata.
+// - Cada 1 s real manda el tiempo de misión y la posición al monitoreo
+//   (POST /api/monitoreo, con el idRuta de /plan) y guarda lo que responde:
+//   oxígeno, costo de volver y alertas. No hay sensores simulados: todo eso lo
+//   calcula el backend. Si el backend ya no tiene la ruta, hay que volver a planificar.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { enviarMonitoreo, obtenerMetricasViaje } from '../api/cliente'
@@ -49,7 +51,10 @@ export function useMonitoreo(viaje, onSalir) {
   const [velocidad, setVelocidad] = useState(60)
   const [modo, setModo] = useState('auto')
   const [alertas, setAlertas] = useState([])
-  const [sinConexion, setSinConexion] = useState(false)
+  const [monitoreo, setMonitoreo] = useState(null) // última respuesta de /api/monitoreo
+  const [errorMonitoreo, setErrorMonitoreo] = useState(null)
+  const [rutaPerdida, setRutaPerdida] = useState(false)
+  const [reinicios, setReinicios] = useState(0)
   const [metricasViaje, setMetricasViaje] = useState(null)
   const [errorMetricas, setErrorMetricas] = useState(null)
 
@@ -67,6 +72,8 @@ export function useMonitoreo(viaje, onSalir) {
   alertasRef.current = alertas
   const metricasRef = useRef(metricasViaje)
   metricasRef.current = metricasViaje
+  const monitoreoRef = useRef(monitoreo)
+  monitoreoRef.current = monitoreo
 
   // control remoto: recibe dirección y modo, y le manda el estado 4 veces por segundo
   useEffect(() => {
@@ -103,6 +110,7 @@ export function useMonitoreo(viaje, onSalir) {
         restante: l.restante,
         alertas: alertasRef.current,
         metricasViaje: metricasRef.current,
+        monitoreo: monitoreoRef.current,
         t: l.t,
       })
     }, 250)
@@ -197,40 +205,59 @@ export function useMonitoreo(viaje, onSalir) {
     return () => cancelAnimationFrame(id)
   }, [enMarcha, sensores])
 
-  // envío al backend de monitoreo cada 1 s
+  // monitoreo en tiempo real: una lectura al empezar (y al reiniciar, con t = 0)
+  // y después una por segundo mientras se camina
+  const idMonitoreo = viaje.respuesta.idMonitoreo ?? null
   useEffect(() => {
-    if (!enMarcha) return
+    if (!idMonitoreo) {
+      setErrorMonitoreo('Esta ruta no se puede monitorear: el análisis no devolvió un idRuta (la ruta tiene que volver al aterrizaje y calcularse con /api/plan).')
+      return
+    }
+    if (rutaPerdida) return
     let activo = true
     const enviar = async () => {
       const l = sensores.leer()
       try {
-        const r = await enviarMonitoreo({
-          idRuta: viaje.respuesta.idRuta,
-          t: Math.round(l.t),
-          posicion: l.posicion,
-          sensores: l.sensores,
-        })
-        if (activo) { setAlertas(r.alertas); setSinConexion(false) }
-      } catch {
-        if (activo) setSinConexion(true)
+        const r = await enviarMonitoreo({ idRuta: idMonitoreo, t: l.t, posicion: l.posicion })
+        if (!activo) return
+        setMonitoreo(r)
+        setAlertas(r.alertas)
+        setErrorMonitoreo(null)
+      } catch (e) {
+        if (!activo) return
+        if (e.codigo === 'RUTA_DESCONOCIDA') {
+          setRutaPerdida(true)
+          setEnMarcha(false)
+        }
+        setErrorMonitoreo(e.message)
       }
     }
     enviar()
+    if (!enMarcha) return () => { activo = false }
     const id = setInterval(enviar, 1000)
     return () => { activo = false; clearInterval(id) }
-  }, [enMarcha, sensores, viaje])
+  }, [enMarcha, sensores, idMonitoreo, rutaPerdida, reinicios])
 
   const acciones = {
     iniciar: () => {
-      if (sensores.leer().terminado) { sensores.reiniciar(); setLectura(sensores.leer()) }
+      if (sensores.leer().terminado) {
+        // repetir una caminata terminada: vuelve a t = 0 (caminata nueva para el monitoreo)
+        sensores.reiniciar()
+        setLectura(sensores.leer())
+        setMonitoreo(null)
+        setReinicios((n) => n + 1)
+      }
       setEnMarcha(true)
     },
     pausar: () => setEnMarcha(false),
+    // la caminata vuelve a t = 0: el monitoreo la toma como una caminata nueva
     reiniciar: () => {
       sensores.reiniciar()
       setLectura(sensores.leer())
       setAlertas([])
+      setMonitoreo(null)
       setEnMarcha(false)
+      setReinicios((n) => n + 1)
     },
     cambiarVelocidad: setVelocidad,
     cambiarModo,
@@ -238,5 +265,8 @@ export function useMonitoreo(viaje, onSalir) {
     moverPad: (direccion) => { pad.current = direccion },
   }
 
-  return { lectura, sensores, alertas, sinConexion, metricasViaje, errorMetricas, enMarcha, velocidad, modo, controlRemoto, codigoSesion: CODIGO_SESION, acciones }
+  return {
+    lectura, sensores, alertas, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
+    enMarcha, velocidad, modo, controlRemoto, codigoSesion: CODIGO_SESION, acciones,
+  }
 }

@@ -12,22 +12,32 @@ import { Brujula } from './Brujula'
 import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
 import { Cruceta } from './Cruceta'
-import { PanelViaje, alertasDeMetricas } from './PanelViaje'
+import { PanelOxigeno, PanelViaje } from './PanelViaje'
 
-const ALERTA_BORDE = {
-  id: 'interfaz-borde-zona',
-  nivel: 'aviso',
-  mensaje: 'Llegaste al borde del tramo de la demo: no se puede seguir en esa dirección.',
-}
 
 export function Monitoreo({ viaje, onSalir }) {
-  const { lectura, sensores, alertas: delBackend, sinConexion, metricasViaje, errorMetricas, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones } = useMonitoreo(viaje, onSalir)
-  // alertas: las del monitoreo, las que salen de las métricas del backend 2 y la del borde del tramo
-  const { alertas, cerrar } = useAlertas([
-    ...(lectura.fueraDeZona ? [ALERTA_BORDE] : []),
-    ...alertasDeMetricas(metricasViaje, lectura.sensores),
-    ...delBackend,
-  ])
+  const {
+    lectura, sensores, alertas: delBackend, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
+    enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones,
+  } = useMonitoreo(viaje, onSalir)
+  // solo las alertas del monitoreo (backend)
+  const { alertas, cerrar } = useAlertas(delBackend)
+  // avisos de la demo (no son alertas del backend)
+  const avisos = [
+    ...(rutaPerdida ? [{
+      id: 'ruta-perdida',
+      etiqueta: 'Monitoreo',
+      titulo: 'El backend ya no tiene esta ruta',
+      detalle: 'Se reinició el servicio de monitoreo. Para seguir, hay que volver a planificar el viaje.',
+      accion: { texto: 'Volver a planificar', onClick: onSalir },
+    }] : []),
+    ...(lectura.fueraDeZona ? [{
+      id: 'borde-tramo',
+      etiqueta: 'Demo',
+      titulo: 'Borde del tramo de la demo',
+      detalle: 'No se puede seguir en esa dirección.',
+    }] : []),
+  ]
   const [z, setZ] = useState(15)
 
   const { camino, paradas } = sensores
@@ -70,7 +80,7 @@ export function Monitoreo({ viaje, onSalir }) {
       <div className="hud">
         <BarraSuperior t={lectura.t} enMarcha={enMarcha} velocidad={velocidad} modo={modo} controlRemoto={controlRemoto} codigoSesion={codigoSesion} acciones={acciones} onSalir={onSalir} />
         <Brujula rumbo={lectura.rumbo} />
-        <Alertas alertas={alertas} onCerrar={cerrar} sinConexion={sinConexion} />
+        <Alertas alertas={alertas} onCerrar={cerrar} avisos={avisos} />
 
         <div className="lateral">
           <Minimapa capas={viaje.capas} camino={camino} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
@@ -80,7 +90,8 @@ export function Monitoreo({ viaje, onSalir }) {
             <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
             <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
           </section>
-          <PanelViaje metricas={metricasViaje} error={errorMetricas} sensores={lectura.sensores} salida={lectura.salida} salidas={lectura.salidas} />
+          <PanelOxigeno monitoreo={monitoreo} error={errorMonitoreo} />
+          <PanelViaje metricas={metricasViaje} error={errorMetricas} salida={lectura.salida} salidas={lectura.salidas} />
         </div>
 
         {/* con control remoto conectado, la cruceta no se muestra para no tapar la demo */}
