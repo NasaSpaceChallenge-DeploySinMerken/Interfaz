@@ -12,6 +12,8 @@ export function EnlaceTelefono({ conectado }) {
   const [red, setRed] = useState(null) // null: cargando; []: sin --host
 
   useEffect(() => {
+    // las direcciones de red solo existen con el servidor de desarrollo de Vite
+    if (!import.meta.env.DEV) return setRed([])
     fetch('/__direcciones-red')
       .then((r) => (r.ok ? r.json() : { red: [] }))
       .then((d) => setRed(d.red ?? []))
@@ -38,6 +40,10 @@ export function EnlaceTelefono({ conectado }) {
           <p className="telefono__ayuda">En el teléfono, con la misma Wi-Fi, abre:</p>
           <p className="telefono__direccion mono">{direccion}</p>
         </>
+      ) : red && !import.meta.env.DEV ? (
+        <p className="telefono__ayuda">
+          El control desde el teléfono funciona con la interfaz corriendo en un computador (<code>npm run dev -- --host</code>). Aquí solo sirve otra ventana de este navegador. Código: <strong className="mono">{CODIGO_SESION}</strong>
+        </p>
       ) : red ? (
         <p className="telefono__ayuda">
           Para usar el teléfono, arranca la interfaz con <code>npm run dev -- --host</code>. Código de esta demo: <strong className="mono">{CODIGO_SESION}</strong>

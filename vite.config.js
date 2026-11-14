@@ -21,6 +21,9 @@ function controlRemoto() {
   }
 }
 
-export default defineConfig({
+// Al construir (npm run build) la app se publica en GitHub Pages bajo /Interfaz/;
+// npm run preview la sirve igual. En desarrollo (npm run dev), en la raíz.
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/Interfaz/' : '/',
   plugins: [react(), controlRemoto()],
-})
+}))

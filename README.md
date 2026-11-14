@@ -64,6 +64,24 @@ VITE_API_URL=http://localhost:3000
 VITE_ANALISIS_URL=http://52.6.216.161:8000
 ```
 
+### Publicar con los backends reales (GitHub Pages + túneles de Cloudflare)
+
+La página publicada (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) es `https`, así que **solo puede usar backends `https`**: el navegador bloquea las llamadas a `http://IP:puerto`. Los backends se exponen por `https` con túneles de Cloudflare.
+
+1. **Marti y Javier abren los túneles** en sus servidores: instrucciones en [TUNELES.md](TUNELES.md). Cada uno pasa su dirección `https://….trycloudflare.com`.
+2. **Con las dos direcciones**, desde la carpeta `Interfaz`:
+   ```bash
+   ./scripts/configurar-backends.sh https://<backend-1>.trycloudflare.com https://<backend-2>.trycloudflare.com
+   ```
+   El script comprueba que respondan, escribe `.env.local`, guarda las direcciones como variables del repo en GitHub (`VITE_API_URL`, `VITE_ANALISIS_URL`) y vuelve a publicar la página.
+3. **Una sola vez**, en GitHub: Settings → Pages → Build and deployment → Source → **"GitHub Actions"**.
+
+La publicación la hace [.github/workflows/deploy.yml](.github/workflows/deploy.yml) en cada push a `main`: construye la app con Vite usando esas variables y publica la carpeta `dist/`. Sin variables, la página publicada usa los datos falsos.
+
+En la página publicada, el teléfono como control no funciona (necesita `npm run dev -- --host` en un computador); sí funciona el control en otra ventana del mismo navegador.
+
+Si la dirección de un túnel cambia (se reinició el túnel o el servidor), se vuelve a correr el paso 2 con la nueva.
+
 ### Con la API del equipo del mapa
 
 Su API vive en el repo [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map), rama `mapa-nacho-marti`. El código está en `server/index.js` y el contrato en `docs/API.md`. Se necesitan dos terminales.
@@ -204,6 +222,8 @@ src/
     canal.js                  comunicación entre demo y teléfono
     sesion.js                 código de 4 dígitos de cada demo
 mockup/                       maquetas HTML sueltas (referencia de diseño)
+scripts/configurar-backends.sh configura las direcciones https de los backends
+.github/workflows/deploy.yml  publica en GitHub Pages en cada push a main
 ```
 
 `MapaTeselas.jsx` es un mapa provisional: el definitivo lo hace el equipo del mapa (ver [Propuesta_equipo.md](Propuesta_equipo.md), sección 4).
