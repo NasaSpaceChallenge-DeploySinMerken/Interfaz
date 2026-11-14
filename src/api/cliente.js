@@ -16,7 +16,25 @@
 
 import * as mock from './mock'
 
-const limpiar = (url) => url?.replace(/\/$/, '') || null
+// Si la dirección del backend dice "localhost" pero esta página se abrió desde
+// otro equipo (por ejemplo, el teléfono entrando por la IP de la red), se usa
+// esa misma IP: "localhost" en el teléfono sería el propio teléfono.
+function limpiar(url) {
+  if (!url) return null
+  const sinBarra = url.replace(/\/$/, '')
+  const host = window.location.hostname
+  const esLocal = (h) => h === 'localhost' || h === '127.0.0.1'
+  try {
+    const u = new URL(sinBarra)
+    if (esLocal(u.hostname) && !esLocal(host)) {
+      u.hostname = host
+      return u.toString().replace(/\/$/, '')
+    }
+  } catch {
+    // dirección no válida: se deja como está
+  }
+  return sinBarra
+}
 const API = limpiar(import.meta.env.VITE_API_URL)
 const ANALISIS = limpiar(import.meta.env.VITE_ANALISIS_URL)
 const MONITOREO = limpiar(import.meta.env.VITE_MONITOREO_URL)
@@ -117,9 +135,11 @@ async function planificarConMapa({ aterrizaje, puntos, volver }) {
     return adaptarRutaMapa(route, secuencia)
   } catch (e) {
     // los índices del error son posiciones en [inicio, ...ruta]: se traducen a nombres
-    const nombres = [...new Set(e.indices.map((i) => secuencia[i]?.nombre).filter(Boolean))]
+    // (un error de conexión no trae índices)
+    const indices = e.indices ?? []
+    const nombres = [...new Set(indices.map((i) => secuencia[i]?.nombre).filter(Boolean))]
     if (nombres.length) e.message = `${e.message}: ${nombres.join(', ')}.`
-    e.ids = e.indices.map((i) => secuencia[i]?.id).filter(Boolean)
+    e.ids = indices.map((i) => secuencia[i]?.id).filter(Boolean)
     throw e
   }
 }

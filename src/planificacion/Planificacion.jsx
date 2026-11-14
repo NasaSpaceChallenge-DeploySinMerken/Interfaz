@@ -20,6 +20,7 @@ import { FormCoordenadas } from './FormCoordenadas'
 import { MapaPlanificacion } from './MapaPlanificacion'
 import { abrirCanal } from '../control/canal'
 import { CODIGO_SESION } from '../control/sesion'
+import { AvisoEsTelefono, EnlaceTelefono } from '../control/EnlaceTelefono'
 
 const ESPERA_TELEFONO_MS = 3000
 
@@ -217,11 +218,10 @@ export function Planificacion({ onComenzar }) {
           <p className="cabecera__marca">MARTIAN MAP</p>
           <h1 className="cabecera__titulo">Preparar el viaje</h1>
           <p className="cabecera__lugar">Cráter Gale · 137.30–137.60° E, 4.50–4.75° S</p>
-          <p className={`cabecera__telefono ${telefonoConectado ? 'cabecera__telefono--ok' : ''}`}>
-            <span className="punto-estado" aria-hidden="true" />
-            {telefonoConectado ? 'Teléfono conectado' : 'Control desde el teléfono'} · código <strong className="mono">{CODIGO_SESION}</strong>
-          </p>
         </header>
+
+        <AvisoEsTelefono />
+        <EnlaceTelefono conectado={telefonoConectado} />
 
         <section className="paso" aria-labelledby="t-capas">
           <h2 className="paso__titulo" id="t-capas"><span className="paso__num">1</span>Capas del mapa</h2>

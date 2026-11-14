@@ -475,3 +475,15 @@ input.punto__nombre:hover { border-color: var(--borde); }
 }
 .aviso-ruta ul { margin: 6px 0 0; padding-left: 18px; }
 .nota--aviso { color: var(--aviso); }
+
+/* Enlace para el teléfono (pantalla de preparar el viaje) */
+.telefono { margin: 0; padding: 14px 20px; border-bottom: 1px solid var(--borde); display: flex; flex-direction: column; gap: 4px; background: var(--panel-2); }
+.telefono--ok { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: #8fd19e; }
+.telefono--ok strong { color: var(--texto); letter-spacing: 0.08em; }
+.telefono__titulo { margin: 0; font-size: 13px; font-weight: 600; }
+.telefono__ayuda { margin: 0; font-size: 12px; color: var(--texto-suave); }
+.telefono__ayuda code { font-family: "JetBrains Mono", monospace; color: var(--texto); }
+.telefono__direccion { margin: 2px 0 0; font-size: 15px; color: var(--acento); word-break: break-all; user-select: all; }
+.aviso-telefono { margin: 0; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(224, 120, 74, 0.12); border-bottom: 1px solid var(--acento); font-size: 14px; }
+.aviso-telefono p { margin: 0; }
+.aviso-telefono .boton { height: 44px; }

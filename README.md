@@ -35,8 +35,8 @@ Cómo conectarlo:
    npm run dev -- --host
    ```
    Vite muestra una línea `Network: http://192.168.x.x:5173/`.
-2. Abre la demo en el navegador del computador. Arriba a la izquierda aparece "Control desde el teléfono · código **4976**" (el número cambia).
-3. En el teléfono, conectado a **la misma red Wi-Fi**, abre `http://192.168.x.x:5173/#control`. Aparecen las demos abiertas: toca la tuya o escribe su código.
+2. Abre la demo en el navegador del computador. En el panel izquierdo aparece **la dirección exacta para el teléfono**, por ejemplo `http://192.168.1.20:5173/#control=4976` (el código cambia).
+3. En el teléfono, conectado a **la misma red Wi-Fi**, abre esa dirección **completa, con `#control=…` al final**. Si abres la dirección sin `#control`, el teléfono muestra un aviso con el botón **"Usar como control"**.
 4. La demo muestra "Teléfono conectado". Desde ahí, todo se maneja en el teléfono.
 
 El código evita que el teléfono controle otra demo abierta en el mismo servidor (por ejemplo, la de otra persona del equipo). Se puede abrir directo con `#control=4976`.
