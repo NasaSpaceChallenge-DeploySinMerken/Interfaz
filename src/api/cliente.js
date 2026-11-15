@@ -295,9 +295,23 @@ function adaptarMetricas(r, destinos) {
 
 // ---------------- Llamadas que usa la interfaz ----------------
 
-// Fase 1: capas para el mapa (por ahora, siempre las teselas de Mars Trek).
-export function obtenerCapas() {
-  return mock.obtenerCapas()
+// Las teselas de NASA dan contexto; THEMIS IR llega del catálogo del backend.
+export async function obtenerCapas() {
+  const base = await mock.obtenerCapas()
+  if (API == null) return base
+  const catalogo = await pedir(API, '/api/layers')
+  const termica = catalogo.layers?.find((c) => c.id === 'themis_ir')
+  if (!termica?.previewUrl) return base
+  return [...base, {
+    id: termica.id,
+    nombre: 'Mapa de calor · THEMIS IR',
+    descripcion: 'Infrarrojo diurno en falso color; intensidad relativa, no temperatura en °C.',
+    kind: 'thermal',
+    url: `${API}${termica.previewUrl}`,
+    bbox: termica.bounds,
+    opacity: termica.opacity ?? 0.65,
+    visible: false,
+  }]
 }
 
 // Fase 1: manda el aterrizaje y los puntos a visitar, devuelve la ruta y sus métricas.
@@ -346,13 +360,13 @@ export async function obtenerMetricasViaje({ posicion, pendientes }) {
 // oxígeno y las alertas: la interfaz no simula ningún sensor.
 // Errores: error.codigo = 'RUTA_DESCONOCIDA' si el backend ya no tiene la ruta
 // (se reinició: hay que volver a planificar).
-export async function enviarMonitoreo({ idRuta, t, posicion }) {
+export async function enviarMonitoreo({ idRuta, t, posicion, reiniciar = false }) {
   if (MONITOREO == null) throw new Error('El monitoreo no está configurado.')
   let r
   try {
     r = await pedir(MONITOREO, '/api/monitoreo', {
       method: 'POST',
-      body: JSON.stringify({ idRuta, t: Math.round(t), posicion, sensores: {} }),
+      body: JSON.stringify({ idRuta, t: Math.round(t), posicion, sensores: {}, reiniciar }),
     })
   } catch (e) {
     if (e.status === 404 && /idruta/i.test(e.message)) e.codigo = 'RUTA_DESCONOCIDA'

@@ -12,6 +12,7 @@ export function SelectorCapas({ capas, activas, error, onCambiar }) {
           <span>
             {capa.nombre}
             {capa.descripcion && <small>{capa.descripcion}</small>}
+            {capa.kind === 'thermal' && <span className="termica-leyenda" aria-label="Escala relativa de infrarrojo: menor a mayor intensidad" />}
           </span>
         </label>
       ))}

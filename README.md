@@ -17,9 +17,15 @@ Abre `http://localhost:5173`. Necesita internet: las imágenes del mapa vienen d
 
 1. **Preparar el viaje:** marca el aterrizaje y hasta 6 puntos con clics en el mapa (o "Cargar ejemplo") y pulsa "Calcular ruta".
 2. **Caminata:** "Comenzar caminata" abre el HUD **en pausa**; pulsa "Iniciar" (en la demo o en el teléfono). El mapa sigue al astronauta y llegan las alertas cada segundo.
+
    - **Control "Ruta automática":** el astronauta sigue la ruta solo.
    - **Control "Manual":** se mueve con **WASD**, las **flechas**, la **cruceta** en pantalla (mantener apretada), un **joystick** conectado o el teléfono. Puede salir de la ruta, pero no del tramo de la demo. Una parada cuenta como alcanzada al pasar a menos de 25 m. Al entrar en manual, la velocidad baja a x10.
    - En los dos modos, cada segundo se envían la posición y los sensores al backend de monitoreo.
+
+La capa opcional **Mapa de calor · THEMIS IR** se activa en el selector de capas.
+Muestra intensidad infrarroja relativa en falso color, no temperatura en °C.
+El front obtiene la capa del catálogo `/api/layers` y su imagen del backend de
+capas, a través del servidor público de la interfaz.
 
 ### Controlar la demo desde el teléfono
 

@@ -45,7 +45,7 @@ export function Planificacion({ onComenzar }) {
 
   useEffect(() => {
     obtenerCapas()
-      .then((c) => { setCapas(c); setActivas(new Set(c.map((x) => x.id))) })
+      .then((c) => { setCapas(c); setActivas(new Set(c.filter((x) => x.visible !== false).map((x) => x.id))) })
       .catch((e) => setErrorCapas(e.message))
   }, [])
 

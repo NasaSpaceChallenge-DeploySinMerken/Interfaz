@@ -42,6 +42,14 @@ function CapaTeselas({ capa, z, izq, arriba, ancho, alto }) {
   return <div className="mapa-teselas__capa">{imagenes}</div>
 }
 
+function CapaTermica({ capa, z, izq, arriba }) {
+  const [o, s, e, n] = capa.bbox
+  const [x0, y0] = aPixel(o, n, z)
+  const [x1, y1] = aPixel(e, s, z)
+  return <img className="mapa-teselas__termica" src={capa.url} alt="" draggable="false"
+    style={{ left: x0 - izq, top: y0 - arriba, width: x1 - x0, height: y1 - y0, opacity: capa.opacity ?? 0.65 }} />
+}
+
 export function MapaTeselas({
   capas, centro, z, encuadre, interactivo = false,
   onVista, onClic, onCursor, className = '', etiqueta, children,
@@ -135,9 +143,10 @@ export function MapaTeselas({
       role={etiqueta ? 'img' : undefined}
       {...eventos}
     >
-      {tam.ancho > 0 && capas.map((capa) => (
-        <CapaTeselas key={capa.id} capa={capa} z={vista.z} izq={izq} arriba={arriba} ancho={tam.ancho} alto={tam.alto} />
-      ))}
+      {tam.ancho > 0 && capas.map((capa) => capa.kind === 'thermal'
+        ? <CapaTermica key={capa.id} capa={capa} z={vista.z} izq={izq} arriba={arriba} />
+        : <CapaTeselas key={capa.id} capa={capa} z={vista.z} izq={izq} arriba={arriba} ancho={tam.ancho} alto={tam.alto} />
+      )}
       {tam.ancho > 0 && (
         <svg className="mapa-teselas__svg" width={tam.ancho} height={tam.alto}>
           {children?.(proyectar, tam, vista)}

@@ -55,6 +55,7 @@ export function useMonitoreo(viaje, onSalir) {
   const [errorMonitoreo, setErrorMonitoreo] = useState(null)
   const [rutaPerdida, setRutaPerdida] = useState(false)
   const [reinicios, setReinicios] = useState(0)
+  const reinicioPendiente = useRef(false)
   const [metricasViaje, setMetricasViaje] = useState(null)
   const [errorMetricas, setErrorMetricas] = useState(null)
 
@@ -215,11 +216,15 @@ export function useMonitoreo(viaje, onSalir) {
     }
     if (rutaPerdida) return
     let activo = true
+    let enCurso = false
     const enviar = async () => {
+      if (enCurso) return
+      enCurso = true
       const l = sensores.leer()
       try {
-        const r = await enviarMonitoreo({ idRuta: idMonitoreo, t: l.t, posicion: l.posicion })
+        const r = await enviarMonitoreo({ idRuta: idMonitoreo, t: l.t, posicion: l.posicion, reiniciar: reinicioPendiente.current })
         if (!activo) return
+        reinicioPendiente.current = false
         setMonitoreo(r)
         setAlertas(r.alertas)
         setErrorMonitoreo(null)
@@ -230,6 +235,8 @@ export function useMonitoreo(viaje, onSalir) {
           setEnMarcha(false)
         }
         setErrorMonitoreo(e.message)
+      } finally {
+        enCurso = false
       }
     }
     enviar()
@@ -243,6 +250,7 @@ export function useMonitoreo(viaje, onSalir) {
       if (sensores.leer().terminado) {
         // repetir una caminata terminada: vuelve a t = 0 (caminata nueva para el monitoreo)
         sensores.reiniciar()
+        reinicioPendiente.current = true
         setLectura(sensores.leer())
         setMonitoreo(null)
         setReinicios((n) => n + 1)
@@ -253,6 +261,7 @@ export function useMonitoreo(viaje, onSalir) {
     // la caminata vuelve a t = 0: el monitoreo la toma como una caminata nueva
     reiniciar: () => {
       sensores.reiniciar()
+      reinicioPendiente.current = true
       setLectura(sensores.leer())
       setAlertas([])
       setMonitoreo(null)

@@ -96,6 +96,7 @@ input:disabled { opacity: 0.5; }
   filter: sepia(1) saturate(2.1) hue-rotate(-14deg) brightness(0.9) contrast(1.05);
 }
 .mapa-teselas__capa img { position: absolute; user-select: none; }
+.mapa-teselas__termica { position: absolute; pointer-events: none; user-select: none; }
 .mapa-teselas__svg { position: absolute; inset: 0; pointer-events: none; }
 
 .etiqueta-mapa {
@@ -150,6 +151,7 @@ input:disabled { opacity: 0.5; }
 .paso__contador.lleno { color: var(--punto); }
 
 .selector-capas { display: flex; flex-direction: column; gap: 12px; }
+.termica-leyenda { display: block; width: 170px; height: 8px; margin-top: 7px; border-radius: 4px; background: linear-gradient(90deg, #140c26, #3f1b5d, #8c2a67, #de4e37, #ffa343, #ffeb9e); }
 
 .form-coords { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .form-coords__ancho { grid-column: 1 / -1; }

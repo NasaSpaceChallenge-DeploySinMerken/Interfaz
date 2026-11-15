@@ -42,6 +42,22 @@ const BACKENDS = {
   '/api': { nombre: 'backend 1 (API del mapa)', destino: limpiar(process.env.BACKEND_1_URL), quitarPrefijo: false },
   '/analisis': { nombre: 'backend 2 (análisis)', destino: limpiar(process.env.BACKEND_2_URL), quitarPrefijo: true },
   '/monitoreo': { nombre: 'backend de monitoreo', destino: limpiar(process.env.BACKEND_MONITOREO_URL), quitarPrefijo: true },
+  '/martian-map': { nombre: 'archivos del mapa', destino: limpiar(process.env.BACKEND_1_URL), quitarPrefijo: false },
+}
+const AUDIENCIA_BACKEND = limpiar(process.env.BACKEND_IDENTITY_AUDIENCE)
+let tokenIdentidad = null
+let tokenHasta = 0
+
+async function identidadBackend() {
+  if (!AUDIENCIA_BACKEND) return null
+  if (tokenIdentidad && Date.now() < tokenHasta) return tokenIdentidad
+  const url = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience='
+    + encodeURIComponent(AUDIENCIA_BACKEND)
+  const respuesta = await fetch(url, { headers: { 'Metadata-Flavor': 'Google' } })
+  if (!respuesta.ok) throw new Error(`No se pudo obtener identidad del servicio: ${respuesta.status}`)
+  tokenIdentidad = await respuesta.text()
+  tokenHasta = Date.now() + 30 * 60 * 1000
+  return tokenIdentidad
 }
 
 const LIMITE_CUERPO = 1024 * 1024 // 1 MB para los backends
@@ -163,9 +179,15 @@ async function reenviar(req, res, prefijo, resto) {
   }
 
   try {
+    const identidad = await identidadBackend()
     const respuesta = await fetch(url, {
       method: req.method,
-      headers: { 'Content-Type': req.headers['content-type'] || 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        Accept: req.headers.accept || '*/*',
+        ...(req.headers.range ? { Range: req.headers.range } : {}),
+        ...(identidad ? { Authorization: `Bearer ${identidad}` } : {}),
+      },
       body: cuerpo,
       signal: AbortSignal.timeout(ESPERA_BACKEND_MS),
     })
@@ -173,6 +195,8 @@ async function reenviar(req, res, prefijo, resto) {
     res.writeHead(respuesta.status, {
       'Content-Type': respuesta.headers.get('content-type') || 'application/json; charset=utf-8',
       'Content-Length': datos.length,
+      ...(respuesta.headers.get('content-range') ? { 'Content-Range': respuesta.headers.get('content-range') } : {}),
+      ...(respuesta.headers.get('accept-ranges') ? { 'Accept-Ranges': respuesta.headers.get('accept-ranges') } : {}),
       'Cache-Control': 'no-store',
     })
     res.end(datos)
