@@ -16,8 +16,6 @@
 name: Desplegar en AWS
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:

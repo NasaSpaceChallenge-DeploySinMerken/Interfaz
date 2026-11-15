@@ -1,0 +1,49 @@
+name: Desplegar front en GCP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: gcp-front-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:servidor
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: martian-map-javier-2026
+          workload_identity_provider: projects/712630786686/locations/global/workloadIdentityPools/github-deploy/providers/interfaz-main
+          service_account: gha-martian-front@martian-map-javier-2026.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Desplegar front público
+        run: |
+          gcloud run deploy martian-front \
+            --source . \
+            --project martian-map-javier-2026 \
+            --region us-east1 \
+            --service-account martian-front@martian-map-javier-2026.iam.gserviceaccount.com \
+            --update-env-vars BACKEND_1_URL=https://martian-layers-712630786686.southamerica-west1.run.app,BACKEND_2_URL=https://martian-layers-712630786686.southamerica-west1.run.app,BACKEND_MONITOREO_URL=https://martian-layers-712630786686.southamerica-west1.run.app,BACKEND_IDENTITY_AUDIENCE=https://martian-layers-712630786686.southamerica-west1.run.app \
+            --max-instances 1 --concurrency 80 --timeout 310 \
+            --memory 512Mi --cpu 1 --port 8080 --clear-base-image --quiet
+
+      - name: Verificar dominio y API
+        run: |
+          curl --fail --silent --show-error https://martian-map.page/ >/dev/null
+          curl --fail --silent --show-error https://martian-map.page/api/health >/dev/null

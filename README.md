@@ -82,6 +82,17 @@ BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 npm
 
 Guía para desplegarlo en AWS como servicio: [servidor/README.md](servidor/README.md).
 
+### Despliegue automático en Google Cloud
+
+Cada push a `main` ejecuta `.github/workflows/deploy-gcp.yml`: construye el
+servidor propio y actualiza Cloud Run `martian-front` en `us-east1`. El dominio
+público es [martian-map.page](https://martian-map.page). `BACKEND_1_URL`,
+`BACKEND_2_URL` y `BACKEND_MONITOREO_URL` apuntan al backend privado de capas;
+ese backend reenvía análisis y monitoreo a la VM dedicada. GitHub se autentica
+con Workload Identity Federation, restringida al ID de este repo y a `main`.
+No hay claves GCP en GitHub. Los workflows anteriores de AWS y GitHub Pages
+siguen disponibles para ejecución manual.
+
 ### Publicar con los backends reales (GitHub Pages + túneles de Cloudflare)
 
 La página publicada (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) es `https`, así que **solo puede usar backends `https`**: el navegador bloquea las llamadas a `http://IP:puerto`. Los backends se exponen por `https` con túneles de Cloudflare.
@@ -206,7 +217,7 @@ El monitoreo está en el servicio de análisis (rama `ingrid-consumo-tiempo-real
 
 El panel **"Lo que falta · backend 2"** sigue saliendo de `/gale/analyze` (distancia, tiempo y pendiente de lo que queda). El oxígeno se toma solo del monitoreo, para no mostrar dos cifras distintas.
 
-Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. Las dos apuntan al servicio de análisis. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
+Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. En Google Cloud apunta al proxy privado del backend de capas. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
 
 ## Estructura
 
@@ -244,7 +255,7 @@ src/
 mockup/                       maquetas HTML sueltas (referencia de diseño)
 servidor/                     servidor propio: sirve la página, reenvía a los backends y pasa los mensajes del teléfono
 scripts/configurar-backends.sh configura las direcciones https de los backends
-.github/workflows/deploy.yml  publica en GitHub Pages en cada push a main
+.github/workflows/deploy-gcp.yml  despliega Cloud Run en cada push a main
 ```
 
 `MapaTeselas.jsx` es un mapa provisional: el definitivo lo hace el equipo del mapa (ver [Propuesta_equipo.md](Propuesta_equipo.md), sección 4).
