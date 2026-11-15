@@ -16,9 +16,13 @@
 // - El metabolismo sube con la pendiente del tramo (3 W por cada 1 %) y baja en reposo.
 // - Umbrales de alerta (tabla UMBRALES), de criterio clínico general.
 //
-// Escenarios: 'normal' (los valores siguen al esfuerzo) y 'media' (emergencia
-// media: los tres signos suben hasta nivel de aviso en unos 20 s). Corren en
-// tiempo real, no en el de la simulación: la velocidad x60 no los acelera.
+// Escenarios (pensados para la demo):
+// - 'emergencia': los tres signos empeoran de forma pareja (en línea recta) en
+//   DURACION_S, desde donde estaban hasta nivel crítico, pasando por aviso
+//   (con valores normales de partida: aviso a los ~4-7 s, crítico a los ~9-10 s).
+// - 'normal': al volver de una emergencia, bajan de forma pareja en DURACION_S
+//   hasta los valores normales; después siguen al esfuerzo.
+// Corren en tiempo real, no en el de la simulación: la velocidad x60 no los acelera.
 
 const W_A_BTU_H = 3.412
 const BTU_POR_LATIDO = 0.142
@@ -30,13 +34,14 @@ const PULSO_MAX = 185
 
 const NORMAL = { temperatura: 36.8, saturacion: 97.5 }
 
-// emergencia media: los tres signos en nivel de aviso, sin llegar a crítico
-const ESCENARIOS = {
-  normal: null,
-  media: { pulso: 152, temperatura: 38.4, saturacion: 92.5 },
-}
+// a dónde llega la emergencia: los tres signos en nivel crítico
+const EMERGENCIA = { pulso: 172, temperatura: 39.4, saturacion: 87.5 }
+const DURACION_S = 12 // de normal a crítico, y de vuelta a normal
+const ESCENARIOS = ['normal', 'emergencia']
+const SIGNOS = ['pulso', 'temperatura', 'saturacion']
 
-// segundos que tarda cada signo en recorrer ~63 % del camino hacia su objetivo
+// sin emergencia: segundos que tarda cada signo en recorrer ~63 % del camino hacia
+// el valor que corresponde al esfuerzo (cambios suaves al caminar o detenerse)
 const TAU = { pulso: 5, temperatura: 6, saturacion: 5 }
 
 export const UMBRALES = {
@@ -51,6 +56,8 @@ const pulsoDesdeMetabolismo = (w) => Math.min(PULSO_MAX, (w * W_A_BTU_H) / (BTU_
 export function crearSignosVitales() {
   let escenario = 'normal'
   let v = { pulso: pulsoDesdeMetabolismo(METABOLISMO_REPOSO_W), ...NORMAL }
+  let inicio = null // valores al empezar la emergencia o la vuelta a la normalidad
+  let progreso = 1 // 0 → 1 durante la emergencia o la vuelta (1: sin transición)
 
   return {
     leer: () => ({
@@ -61,7 +68,10 @@ export function crearSignosVitales() {
     }),
     get escenario() { return escenario },
     cambiarEscenario(nuevo) {
-      if (nuevo in ESCENARIOS) escenario = nuevo
+      if (!ESCENARIOS.includes(nuevo) || nuevo === escenario) return
+      escenario = nuevo
+      inicio = { ...v }
+      progreso = 0
     },
     // dt en segundos reales; caminando: si el astronauta se está moviendo;
     // pendientePct: pendiente del tramo actual (del análisis del terreno)
@@ -69,14 +79,23 @@ export function crearSignosVitales() {
       const metabolismo = caminando
         ? Math.min(METABOLISMO_MAX_W, METABOLISMO_CAMINANDO_W + W_POR_PENDIENTE_PCT * Math.max(0, pendientePct))
         : METABOLISMO_REPOSO_W
-      const objetivo = ESCENARIOS[escenario] ?? { pulso: pulsoDesdeMetabolismo(metabolismo), ...NORMAL }
+      const normal = { pulso: pulsoDesdeMetabolismo(metabolismo), ...NORMAL }
       const siguiente = {}
-      for (const k of Object.keys(TAU)) siguiente[k] = v[k] + (objetivo[k] - v[k]) * (1 - Math.exp(-dt / TAU[k]))
+      if (escenario === 'emergencia' || progreso < 1) {
+        // transición pareja: hacia el nivel crítico (emergencia) o de vuelta a lo normal
+        progreso = Math.min(1, progreso + dt / DURACION_S)
+        const destino = escenario === 'emergencia' ? EMERGENCIA : normal
+        for (const k of SIGNOS) siguiente[k] = inicio[k] + (destino[k] - inicio[k]) * progreso
+      } else {
+        for (const k of SIGNOS) siguiente[k] = v[k] + (normal[k] - v[k]) * (1 - Math.exp(-dt / TAU[k]))
+      }
       siguiente.pulso += (Math.random() - 0.5) * 1.5 // variación natural, latido a latido
       v = siguiente
     },
     reiniciar() {
       escenario = 'normal'
+      inicio = null
+      progreso = 1
       v = { pulso: pulsoDesdeMetabolismo(METABOLISMO_REPOSO_W), ...NORMAL }
     },
   }

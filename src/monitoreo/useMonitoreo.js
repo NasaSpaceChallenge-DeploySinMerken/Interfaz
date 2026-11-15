@@ -11,7 +11,7 @@
 //   (signosVitales.js), para mostrar las alertas fisiológicas mientras el backend
 //   no recibe sensores. Se mandan igual en `sensores`, y sus alertas se suman a
 //   las del backend marcadas como simuladas. El teléfono puede lanzar una
-//   "emergencia media" ({ tipo: 'escenario', escenario: 'media' | 'normal' }).
+//   emergencia ({ tipo: 'escenario', escenario: 'emergencia' | 'normal' }).
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { enviarMonitoreo, obtenerMetricasViaje } from '../api/cliente'
@@ -311,7 +311,7 @@ export function useMonitoreo(viaje, onSalir) {
       setReinicios((n) => n + 1)
     },
     cambiarVelocidad: setVelocidad,
-    // 'media' (emergencia media, simulada) o 'normal'
+    // 'emergencia' (simulada: empeora de a poco hasta crítico) o 'normal'
     escenario: (nombre) => {
       vitales.cambiarEscenario(nombre)
       setSignos(vitales.leer())

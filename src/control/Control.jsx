@@ -298,10 +298,10 @@ function Caminata({ estado, enviar, conectado, espectador, direccionPantalla }) 
 
         <section className="control__simulacion" aria-labelledby="t-simulacion">
           <h2 id="t-simulacion" className="control__subtitulo">Simular signos vitales</h2>
-          {estado.signos?.escenario === 'media'
+          {estado.signos?.escenario === 'emergencia'
             ? <button type="button" className="boton" onClick={() => enviar({ tipo: 'escenario', escenario: 'normal' })} disabled={!conectado}>Volver a la normalidad</button>
-            : <button type="button" className="boton boton--alerta" onClick={() => enviar({ tipo: 'escenario', escenario: 'media' })} disabled={!conectado}>Emergencia media</button>}
-          <p className="control__ayuda">Sube el pulso y la temperatura y baja la saturación hasta nivel de aviso en unos 20 s. Son datos simulados, no del traje.</p>
+            : <button type="button" className="boton boton--alerta" onClick={() => enviar({ tipo: 'escenario', escenario: 'emergencia' })} disabled={!conectado}>Simular emergencia</button>}
+          <p className="control__ayuda">En 12 s el pulso y la temperatura suben y la saturación baja hasta nivel crítico (rojo), pasando por aviso (amarillo). Volver a la normalidad también tarda 12 s. Son datos simulados, no del traje.</p>
         </section>
       </div>
 

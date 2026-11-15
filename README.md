@@ -230,13 +230,15 @@ El panel **"Lo que falta"** sigue saliendo de `/gale/analyze` (distancia, tiempo
 
 Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. En Google Cloud apunta al proxy privado del backend de capas. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
 
-### Signos vitales simulados y "Emergencia media"
+### Signos vitales simulados y "Simular emergencia"
 
 El backend acepta `sensores` pero todavía no los usa (fase 2). Para mostrar en la demo las alertas fisiológicas, la interfaz **simula** pulso, temperatura del cuerpo y saturación de O₂ ([src/monitoreo/signosVitales.js](src/monitoreo/signosVitales.js)). Todo lo simulado lleva la etiqueta **"Simulado"**: la tarjeta "Signos vitales" del HUD y sus alertas.
 
 - **Pulso desde el esfuerzo** (estudio de la NASA, 132 EVA de Shuttle e ISS): pulso = metabolismo (BTU/h) ÷ (0,142 BTU por latido × 60). Caminando en plano se usa el metabolismo promedio de una EVA (253 W → ~101 latidos/min), que sube 3 W por cada 1 % de pendiente del tramo; en reposo, 160 W. Tope de 185 latidos/min, porque la relación viene de la ISS y no sirve a metabolismos muy altos.
-- **"Emergencia media"**: botón en el control del teléfono (solo el piloto). En unos 20 s, el pulso sube a ~152, la temperatura a ~38,4 °C y la saturación baja a ~92,5 %: las tres alertas saltan en nivel de aviso. "Volver a la normalidad" lo deshace. Corre en tiempo real (la velocidad x60 no lo acelera) y también en pausa.
+- **"Simular emergencia"**: botón en el control del teléfono (solo el piloto). Pensado para la demo: en 12 s los tres signos empeoran de forma pareja, de donde estaban hasta nivel crítico (pulso ~172, temperatura ~39,4 °C, saturación ~87,5 %); las alertas saltan primero en aviso (a los ~4-7 s) y después en crítico (a los ~9-10 s). "Volver a la normalidad" los baja de forma pareja en otros 12 s. Corre en tiempo real (la velocidad x60 no lo acelera) y también en pausa.
 - Los valores se mandan en `sensores` (`pulso`, `temperatura`, `saturacionO2`, `simulado: true`), para cuando el backend los evalúe.
+
+Colores: signos vitales en verde (normal), amarillo (aviso) y rojo (crítico). El oxígeno toma el color de la alerta más grave que manda el backend: blanco sin alertas o con la informativa, amarillo con el aviso (ya no cubre el margen de regreso ni la reserva) y rojo con la crítica (no alcanza para volver) ([src/monitoreo/nivelOxigeno.js](src/monitoreo/nivelOxigeno.js)).
 
 Umbrales (supuestos del proyecto: la NASA no los define):
 
