@@ -12,19 +12,36 @@
 // cada demo tiene un código de sesión de 4 dígitos y el control solo habla con
 // la demo de su código.
 //
-// Cada mensaje lleva `origen` ('demo' o 'control') y `sesion` (el código).
+// Cada mensaje lleva `origen` ('demo' o 'control') y `sesion` (el código); los del
+// control llevan además `emisor`, el id de ese teléfono (ver piloto.js).
 // Mensajes:
-//   control → demo: { tipo: 'hola' }                 (cada 1 s, para saber que está)
+//   control → demo: { tipo: 'hola', pide }           (cada 1 s; pide: si quiere ser el piloto)
+//                   { tipo: 'soltar' }               (el piloto deja el control)
 //                   { tipo: 'direccion', x, y }      (x: este, y: norte; 0, 0 al soltar)
 //                   { tipo: 'modo', modo }           ('auto' | 'manual')
 //                   { tipo: 'velocidad', valor }     (1 | 10 | 60)
 //                   { tipo: 'accion', accion }       ('iniciar' | 'pausar' | 'reiniciar')
 //   demo → control: { tipo: 'estado', posicion, rumbo, modo, enMarcha, velocidad,
-//                     terminado, proxima, restante, alertas, t }
+//                     terminado, proxima, restante, alertas, t, piloto }
 
 const NOMBRE = 'martian-map-control'
 const SERVIDOR_PROPIO = import.meta.env.VITE_SERVIDOR === 'propio'
-const CONTROL = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/control`
+export const CONTROL = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/control`
+
+// id de este control (teléfono); se guarda en la pestaña para seguir siendo el
+// piloto si se recarga la página
+function idDeEsteControl() {
+  const nuevo = Math.random().toString(36).slice(2, 10)
+  try {
+    const guardado = sessionStorage.getItem('martian-map-control-id')
+    if (guardado) return guardado
+    sessionStorage.setItem('martian-map-control-id', nuevo)
+  } catch {
+    // sin almacenamiento: un id nuevo en cada carga
+  }
+  return nuevo
+}
+export const ID_CONTROL = idDeEsteControl()
 
 // `sesion`: código con el que se filtran los mensajes. Con null se reciben todos
 // (lo usa el control para listar las demos disponibles).
@@ -48,7 +65,8 @@ export function abrirCanal(rol, sesion, alRecibir) {
   let sondeo = null
   if (SERVIDOR_PROPIO) {
     if (sesion) {
-      fuente = new EventSource(`${CONTROL}/${sesion}/eventos`)
+      // la demo se identifica: mientras esté conectada, nadie más recibe su código
+      fuente = new EventSource(`${CONTROL}/${sesion}/eventos${rol === 'demo' ? '?rol=demo' : ''}`)
       fuente.onmessage = (e) => {
         try {
           recibir(JSON.parse(e.data))
@@ -73,7 +91,7 @@ export function abrirCanal(rol, sesion, alRecibir) {
 
   return {
     enviar(msg, sesionDestino = sesion) {
-      const completo = { ...msg, origen: rol, sesion: sesionDestino }
+      const completo = { ...msg, origen: rol, sesion: sesionDestino, ...(rol === 'control' ? { emisor: ID_CONTROL } : {}) }
       bc?.postMessage(completo)
       hot?.send(NOMBRE, completo)
       if (SERVIDOR_PROPIO && sesionDestino) {

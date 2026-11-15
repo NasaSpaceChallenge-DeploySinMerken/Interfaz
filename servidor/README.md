@@ -10,7 +10,7 @@ Hace tres cosas:
 | `/api/...` | Reenvía al **backend 1** (API del mapa): `/api/plan`, `/api/routes`, `/api/health`… |
 | `/analisis/...` | Reenvía al **backend 2** (análisis): `/analisis/gale/analyze` → `/gale/analyze`. |
 | `/monitoreo/...` | Reenvía al monitoreo en tiempo real (`/monitoreo/api/monitoreo` → `/api/monitoreo` del servicio de análisis). |
-| `/control/...` | Pasa los mensajes entre la demo y el teléfono (control remoto). |
+| `/control/...` | Pasa los mensajes entre la demo y el teléfono (control remoto) y entrega a cada demo un código de 4 dígitos que ninguna otra demo abierta esté usando (`POST /control/reservar`). |
 | `/salud` | Estado del servidor y qué backends tiene configurados. |
 
 El navegador solo habla con este servidor, así que:

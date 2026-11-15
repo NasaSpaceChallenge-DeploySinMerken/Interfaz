@@ -720,3 +720,24 @@ input.punto__nombre:hover { border-color: var(--borde); }
   .cruceta__botones { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); }
   .cruceta__botones button { width: 36px; height: 36px; }
 }
+
+/* =================================================================
+   Control: un solo piloto a la vez (los demás, espectadores)
+   ================================================================= */
+.control__mandos { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.control__solo-ver { width: 100%; }
+.control__solo-ver :is(button, input, label, select, .joystick) { opacity: 0.4; filter: grayscale(0.5); }
+.piloto {
+  width: 100%; margin: 0; padding: 12px 14px; border: 1px solid var(--borde); border-radius: 12px;
+  background: var(--panel-2); display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.piloto--ok { flex-direction: row; justify-content: space-between; padding: 8px 14px; color: #8fd19e; font-size: 13px; text-align: left; }
+.piloto--ok .boton--texto { height: 28px; font-size: 13px; text-decoration: underline; }
+.piloto__titulo { margin: 0; font-weight: 600; color: var(--aviso); }
+.piloto__ayuda { margin: 0; font-size: 13px; color: var(--texto-suave); }
+
+/* QR en la planificación para abrir el control en el teléfono */
+.telefono__qr-fila { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.telefono__qr { flex: none; width: 128px; height: 128px; padding: 6px; border-radius: 8px; background: #fff; }
+.telefono__qr svg { display: block; width: 100%; height: 100%; }
+.telefono__qr-fila .telefono__direccion { font-size: 13px; }

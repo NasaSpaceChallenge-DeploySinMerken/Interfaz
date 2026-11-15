@@ -13,6 +13,7 @@
 //      POST /control/:sesion           publica un mensaje en la sesión (código de 4 dígitos)
 //      GET  /control/:sesion/eventos   recibe los mensajes de la sesión (Server-Sent Events)
 //      GET  /control/demos             demos activas, para que el teléfono elija una
+//      POST /control/reservar          entrega a una demo nueva un código que nadie más esté usando
 //
 // Configuración (variables de entorno):
 //   PORT=8080  HOST=0.0.0.0
@@ -64,6 +65,9 @@ const LIMITE_CUERPO = 1024 * 1024 // 1 MB para los backends
 const LIMITE_MENSAJE = 64 * 1024 // 64 KB para el control
 const SESION_VALIDA = /^\d{4}$/
 const DEMO_ACTIVA_MS = 5000
+// un código sigue ocupado mientras su demo esté conectada y hasta 10 min después de
+// su última señal (cubre reconexiones y pestañas en segundo plano, que el navegador frena)
+const RESERVA_MS = 10 * 60 * 1000
 
 // ---------------- utilidades ----------------
 
@@ -218,8 +222,33 @@ async function reenviar(req, res, prefijo, resto) {
 
 const sesiones = new Map() // sesión → Set de respuestas SSE abiertas
 const ultimoEstado = new Map() // sesión → { estado, momento } (último estado enviado por la demo)
+const reservas = new Map() // código → momento de la última señal de su demo
+const demosConectadas = new Map() // código → conexiones SSE abiertas por su demo (?rol=demo)
 
-function suscribir(req, res, sesion) {
+// Códigos únicos: cada demo pide el suyo al abrirse, así dos demos nunca comparten
+// código (si no, un teléfono controlaría las dos a la vez).
+function codigoEnUso(codigo) {
+  if (demosConectadas.get(codigo)) return true
+  const momento = reservas.get(codigo)
+  if (momento && Date.now() - momento < RESERVA_MS) return true
+  reservas.delete(codigo)
+  return false
+}
+
+function reservar(res) {
+  let codigo = null
+  // al azar (los códigos no son correlativos); si hay muchos ocupados, el primero libre
+  for (let i = 0; i < 50 && !codigo; i++) {
+    const c = String(1000 + Math.floor(Math.random() * 9000))
+    if (!codigoEnUso(c)) codigo = c
+  }
+  for (let n = 1000; n <= 9999 && !codigo; n++) if (!codigoEnUso(String(n))) codigo = String(n)
+  if (!codigo) return error(res, 503, 'SIN_CODIGOS', 'No quedan códigos libres para otra demo')
+  reservas.set(codigo, Date.now())
+  enviarJson(res, 200, { codigo }, { 'Cache-Control': 'no-store' })
+}
+
+function suscribir(req, res, sesion, esDemo) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
@@ -229,7 +258,17 @@ function suscribir(req, res, sesion) {
   res.write('retry: 2000\n\n')
   if (!sesiones.has(sesion)) sesiones.set(sesion, new Set())
   sesiones.get(sesion).add(res)
+  if (esDemo) {
+    demosConectadas.set(sesion, (demosConectadas.get(sesion) ?? 0) + 1)
+    reservas.set(sesion, Date.now())
+  }
   req.on('close', () => {
+    if (esDemo) {
+      const quedan = (demosConectadas.get(sesion) ?? 1) - 1
+      if (quedan > 0) demosConectadas.set(sesion, quedan)
+      else demosConectadas.delete(sesion)
+      reservas.set(sesion, Date.now()) // el código se guarda un rato por si la demo se reconecta
+    }
     const conectados = sesiones.get(sesion)
     conectados?.delete(res)
     if (conectados && !conectados.size) sesiones.delete(sesion)
@@ -245,6 +284,7 @@ async function publicar(req, res, sesion) {
   }
   if (!mensaje || typeof mensaje !== 'object') return error(res, 400, 'MENSAJE_INVALIDO', 'El mensaje debe ser un objeto')
   mensaje.sesion = sesion
+  if (mensaje.origen === 'demo') reservas.set(sesion, Date.now())
   if (mensaje.origen === 'demo' && mensaje.tipo === 'estado') ultimoEstado.set(sesion, { estado: mensaje, momento: Date.now() })
 
   const linea = `data: ${JSON.stringify(mensaje)}\n\n`
@@ -295,11 +335,12 @@ const servidor = http.createServer(async (req, res) => {
 
     // control desde el teléfono
     if (pathname === '/control/demos' && req.method === 'GET') return listarDemos(res)
+    if (pathname === '/control/reservar' && req.method === 'POST') return reservar(res)
     const control = pathname.match(/^\/control\/([^/]+)(\/eventos)?\/?$/)
     if (control) {
       const [, sesion, eventos] = control
       if (!SESION_VALIDA.test(sesion)) return error(res, 400, 'SESION_INVALIDA', 'La sesión es un código de 4 dígitos')
-      if (eventos && req.method === 'GET') return suscribir(req, res, sesion)
+      if (eventos && req.method === 'GET') return suscribir(req, res, sesion, new URL(req.url, 'http://localhost').searchParams.get('rol') === 'demo')
       if (!eventos && req.method === 'POST') return publicar(req, res, sesion)
       return error(res, 405, 'METODO_NO_PERMITIDO', 'Método no permitido')
     }

@@ -6,7 +6,7 @@ Interfaz del navegador del proyecto [martian-map](https://github.com/NasaSpaceCh
 - Contrato con el backend: [Contrato_API.md](Contrato_API.md)
 - Propuesta para el resto del equipo: [Propuesta_equipo.md](Propuesta_equipo.md)
 
-**Demo publicada: [https://martian-map.page](https://martian-map.page)** (Google Cloud, con los backends reales). El teléfono se conecta abriendo `https://martian-map.page/#control` (la demo muestra la dirección exacta con su código). El botón ⛶ pone la demo en pantalla completa para la presentación.
+**Demo publicada: [https://martian-map.page](https://martian-map.page)** (Google Cloud, con los backends reales). El teléfono se conecta leyendo el **QR** que muestra la demo en la planificación (o abriendo la dirección con su código, `https://martian-map.page/#control=1234`). El botón ⛶ pone la demo en pantalla completa para la presentación.
 
 ## Cómo correrlo
 
@@ -43,11 +43,18 @@ Cómo conectarlo:
    npm run dev -- --host
    ```
    Vite muestra una línea `Network: http://192.168.x.x:5173/`.
-2. Abre la demo en el navegador del computador. En el panel izquierdo aparece **la dirección exacta para el teléfono**, por ejemplo `http://192.168.1.20:5173/#control=4976` (el código cambia).
-3. En el teléfono, conectado a **la misma red Wi-Fi**, abre esa dirección **completa, con `#control=…` al final**. Si abres la dirección sin `#control`, el teléfono muestra un aviso con el botón **"Usar como control"**.
+2. Abre la demo en el navegador del computador. En el panel izquierdo aparece un **QR** y **la dirección exacta para el teléfono**, por ejemplo `http://192.168.1.20:5173/#control=4976` (el código cambia).
+3. En el teléfono, conectado a **la misma red Wi-Fi**, lee el QR con la cámara o abre esa dirección **completa, con `#control=…` al final**. Si abres la dirección sin `#control`, el teléfono muestra un aviso con el botón **"Usar como control"**.
 4. La demo muestra "Teléfono conectado". Desde ahí, todo se maneja en el teléfono.
 
 El código evita que el teléfono controle otra demo abierta en el mismo servidor (por ejemplo, la de otra persona del equipo). Se puede abrir directo con `#control=4976`.
+
+**Un solo piloto a la vez.** Si varias personas leen el QR, la demo obedece solo a la primera (el piloto); las demás quedan en **modo espectador**: ven el viaje y los datos en su teléfono, con los mandos desactivados, y la demo ignora sus órdenes.
+- El piloto puede **"Soltar el control"**; entonces un espectador puede **"Tomar el control"**.
+- Si el piloto cierra la página o pierde la señal, el control se libera solo a los **5 s**.
+- La lógica está en [src/control/piloto.js](src/control/piloto.js).
+
+**Códigos únicos.** En la versión publicada, cada demo pide su código al servidor al abrirse, y el servidor nunca entrega uno que esté usando otra demo abierta. Un código queda libre 10 min después de cerrar su demo. Con `npm run dev` el código sigue siendo al azar.
 
 - **En Fedora**, si el teléfono no carga la página, abre el puerto mientras pruebas: `sudo firewall-cmd --add-port=5173/tcp` (dura hasta reiniciar).
 - **Sin teléfono:** durante la caminata, "Abrir ↗" (junto al código) abre el control en una **ventana aparte** del mismo computador. No uses otra pestaña de la misma ventana: el navegador pausa la demo cuando no se ve.
@@ -255,6 +262,8 @@ src/
     Control.jsx               emparejar con la demo y controlar la caminata
     PlanificacionRemota.jsx   preparar el viaje desde el teléfono
     canal.js                  comunicación entre demo y teléfono
+    piloto.js                 un solo piloto a la vez; los demás teléfonos, espectadores
+    EnlaceTelefono.jsx        QR y dirección para abrir el control en el teléfono
     sesion.js                 código de 4 dígitos de cada demo
 mockup/                       maquetas HTML sueltas (referencia de diseño)
 servidor/                     servidor propio: sirve la página, reenvía a los backends y pasa los mensajes del teléfono

@@ -1,12 +1,33 @@
 // Muestra en la demo la dirección exacta que hay que abrir en el teléfono,
 // con la IP de la red y el código de esta demo ya puestos.
 // Las direcciones de red las entrega el servidor de Vite (vite.config.js).
+// Incluye un QR con esa dirección: al leerlo con la cámara se abre el control.
+// Si lo leen varias personas, una controla y las demás miran (ver piloto.js).
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import qrcode from 'qrcode-generator'
 import { CODIGO_SESION } from './sesion'
 
 // la red de Docker (172.17.x.x) no sirve para el teléfono
 const preferida = (urls) => urls.find((u) => !/\/\/172\.1[7-9]\./.test(u)) ?? urls[0]
+
+// QR como SVG: un cuadrado por módulo oscuro, en un solo trazado
+function CodigoQR({ texto }) {
+  const { n, d } = useMemo(() => {
+    const qr = qrcode(0, 'M')
+    qr.addData(texto)
+    qr.make()
+    const n = qr.getModuleCount()
+    let d = ''
+    for (let f = 0; f < n; f++) for (let c = 0; c < n; c++) if (qr.isDark(f, c)) d += `M${c} ${f}h1v1h-1z`
+    return { n, d }
+  }, [texto])
+  return (
+    <svg viewBox={`0 0 ${n} ${n}`} role="img" aria-label={`Código QR: ${texto}`} shapeRendering="crispEdges">
+      <path d={d} fill="#0d0f12" />
+    </svg>
+  )
+}
 
 export function EnlaceTelefono({ conectado }) {
   const [red, setRed] = useState(null) // null: cargando; []: sin --host
@@ -24,6 +45,9 @@ export function EnlaceTelefono({ conectado }) {
       .catch(() => setRed([]))
   }, [])
 
+  const base = red?.length ? preferida(red) : null
+  const direccion = base ? `${base.replace(/\/$/, '')}/#control=${CODIGO_SESION}` : null
+
   if (conectado) {
     return (
       <p className="telefono telefono--ok" role="status">
@@ -33,18 +57,22 @@ export function EnlaceTelefono({ conectado }) {
     )
   }
 
-  const base = red?.length ? preferida(red) : null
-  const direccion = base ? `${base.replace(/\/$/, '')}/#control=${CODIGO_SESION}` : null
-
   return (
     <div className="telefono">
       <p className="telefono__titulo">Controlar desde el teléfono</p>
       {direccion ? (
         <>
-          <p className="telefono__ayuda">
-            {import.meta.env.VITE_SERVIDOR === 'propio' ? 'En el teléfono, abre:' : 'En el teléfono, con la misma Wi-Fi, abre:'}
-          </p>
-          <p className="telefono__direccion mono">{direccion}</p>
+          <div className="telefono__qr-fila">
+            <div className="telefono__qr"><CodigoQR texto={direccion} /></div>
+            <div>
+              <p className="telefono__ayuda">
+                {import.meta.env.VITE_SERVIDOR === 'propio'
+                  ? 'Lee el QR con la cámara del teléfono, o abre:'
+                  : 'Lee el QR con la cámara del teléfono (en la misma Wi-Fi), o abre:'}
+              </p>
+              <p className="telefono__direccion mono">{direccion}</p>
+            </div>
+          </div>
         </>
       ) : red && !import.meta.env.DEV ? (
         <p className="telefono__ayuda">

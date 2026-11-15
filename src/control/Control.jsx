@@ -9,9 +9,13 @@
 //
 // Como puede haber varias demos abiertas, se empareja con una por su código
 // de 4 dígitos (se ve en el panel de la misión de la demo).
+//
+// Si varias personas abren el control de la misma demo, solo una la maneja (el
+// piloto); las demás quedan en modo espectador hasta que el control se libere
+// (ver piloto.js).
 
 import { useEffect, useRef, useState } from 'react'
-import { abrirCanal, codigoEnDireccion } from './canal'
+import { abrirCanal, codigoEnDireccion, ID_CONTROL } from './canal'
 import { formatearCoords, formatearDistancia } from '../mapa/geo'
 import { PlanificacionRemota } from './PlanificacionRemota'
 
@@ -76,6 +80,31 @@ function Joystick({ onCambio, deshabilitado }) {
   )
 }
 
+// Quién maneja la demo: este teléfono (piloto) u otra persona (espectador).
+function AvisoPiloto({ soyPiloto, libre, onTomar, onSoltar }) {
+  if (soyPiloto) {
+    return (
+      <p className="piloto piloto--ok" role="status">
+        <span>Tienes el control de la demo.</span>
+        <button type="button" className="boton--texto" onClick={onSoltar}>Soltar el control</button>
+      </p>
+    )
+  }
+  return (
+    <div className="piloto" role="status">
+      <p className="piloto__titulo">Modo espectador</p>
+      {libre ? (
+        <>
+          <p className="piloto__ayuda">Nadie está controlando la demo.</p>
+          <button type="button" className="boton boton--principal" onClick={onTomar}>Tomar el control</button>
+        </>
+      ) : (
+        <p className="piloto__ayuda">Otra persona está controlando la demo. Puedes seguir el viaje desde aquí; cuando suelte el control, podrás tomarlo.</p>
+      )}
+    </div>
+  )
+}
+
 // Pantalla para elegir la demo cuando el control se abre sin código.
 function ElegirDemo({ demos, onElegir }) {
   const [codigo, setCodigo] = useState('')
@@ -116,6 +145,11 @@ export function Control() {
   const [ultimoEstado, setUltimoEstado] = useState(0)
   const [demos, setDemos] = useState({}) // código → { estado, ultimo }
   const [ahora, setAhora] = useState(Date.now())
+  // al abrir el control se pide ser el piloto; si otra persona ya lo es, se pasa a espectador
+  const [quiere, setQuiere] = useState(true)
+  const quiereRef = useRef(quiere)
+  quiereRef.current = quiere
+  const soyPilotoRef = useRef(false)
 
   // el código también puede cambiar desde la dirección (#control=1234)
   useEffect(() => {
@@ -127,6 +161,7 @@ export function Control() {
   // canal con la demo: sin código escucha a todas para listarlas
   useEffect(() => {
     setEstado(null)
+    setQuiere(true)
     canal.current = abrirCanal('control', codigo, (msg) => {
       if (msg.tipo !== 'estado') return
       if (codigo) { setEstado(msg); setUltimoEstado(Date.now()) }
@@ -155,6 +190,8 @@ export function Control() {
     const id = setInterval(() => {
       setAhora(Date.now())
       if (!codigo) return
+      if (Date.now() - ultimoHola > 1000) { canal.current?.enviar({ tipo: 'hola', pide: quiereRef.current }); ultimoHola = Date.now() }
+      if (!soyPilotoRef.current) { anterior = null; return } // el espectador no mueve al astronauta
       let x = 0, y = 0
       teclas.current.forEach((k) => { x += TECLAS[k][0]; y += TECLAS[k][1] })
       const dir = x || y ? { x, y } : direccionPantalla.current ?? leerMando()
@@ -162,18 +199,35 @@ export function Control() {
       // mientras se camina se repite la dirección; al soltar se avisa una vez
       if (dir || cambio) canal.current?.enviar({ tipo: 'direccion', x: dir?.x ?? 0, y: dir?.y ?? 0 })
       anterior = dir
-      if (Date.now() - ultimoHola > 1000) { canal.current?.enviar({ tipo: 'hola' }); ultimoHola = Date.now() }
     }, 1000 / ENVIOS_POR_SEGUNDO)
     return () => clearInterval(id)
   }, [codigo])
 
+  // si otra persona es el piloto, este teléfono deja de pedirlo (queda de espectador)
+  const otroEsPiloto = Boolean(estado?.piloto && estado.piloto !== ID_CONTROL)
+  useEffect(() => {
+    if (otroEsPiloto) setQuiere(false)
+  }, [otroEsPiloto])
+
   function elegir(nuevo) {
+    if (codigo && soyPilotoRef.current) canal.current?.enviar({ tipo: 'soltar' })
     window.location.hash = nuevo ? `control=${nuevo}` : 'control'
     setCodigo(nuevo)
   }
 
   const conectado = codigo && estado && ahora - ultimoEstado < ESPERA_DEMO_MS
   const enviar = (msg) => canal.current?.enviar(msg)
+  const soyPiloto = Boolean(conectado && estado.piloto === ID_CONTROL)
+  soyPilotoRef.current = soyPiloto
+  const espectador = conectado && !soyPiloto
+  function tomar() {
+    setQuiere(true)
+    canal.current?.enviar({ tipo: 'hola', pide: true })
+  }
+  function soltar() {
+    setQuiere(false)
+    canal.current?.enviar({ tipo: 'soltar' })
+  }
   const demosActivas = Object.entries(demos)
     .filter(([, d]) => ahora - d.ultimo < ESPERA_DEMO_MS)
     .map(([c, d]) => ({ codigo: c, estado: d.estado }))
@@ -200,64 +254,80 @@ export function Control() {
         <ElegirDemo demos={demosActivas} onElegir={elegir} />
       ) : !conectado ? (
         <p className="control__ayuda">Abre la demo en el navegador del computador. Si no aparece, revisa que el código sea el que muestra la demo.</p>
-      ) : estado.fase === 'planificacion' ? (
-        <PlanificacionRemota estado={estado} enviar={enviar} />
       ) : (
         <>
-          <div className="control__fila">
-            {conectado && estado.enMarcha
-              ? <button type="button" className="boton boton--principal" onClick={() => enviar({ tipo: 'accion', accion: 'pausar' })}>Pausar</button>
-              : <button type="button" className="boton boton--principal" onClick={() => enviar({ tipo: 'accion', accion: 'iniciar' })} disabled={!conectado}>{conectado && estado.terminado ? 'Repetir' : 'Iniciar'}</button>}
-            <button type="button" onClick={() => enviar({ tipo: 'accion', accion: 'reiniciar' })} disabled={!conectado}>Reiniciar</button>
-            <div className="segmentado segmentado--mono" role="group" aria-label="Velocidad">
-              {[1, 10, 60].map((v) => (
-                <button key={v} type="button" aria-pressed={!!conectado && estado.velocidad === v} onClick={() => enviar({ tipo: 'velocidad', valor: v })} disabled={!conectado}>x{v}</button>
-              ))}
+          <AvisoPiloto soyPiloto={soyPiloto} libre={!estado.piloto} onTomar={tomar} onSoltar={soltar} />
+          {estado.fase === 'planificacion' ? (
+            <div className={espectador ? 'control__solo-ver' : ''} inert={espectador || undefined}>
+              <PlanificacionRemota estado={estado} enviar={enviar} />
             </div>
-          </div>
-
-          <div className="segmentado control__modo" role="group" aria-label="Modo de control">
-            <button type="button" aria-pressed={!!conectado && estado.modo === 'auto'} onClick={() => enviar({ tipo: 'modo', modo: 'auto' })} disabled={!conectado}>Ruta automática</button>
-            <button type="button" aria-pressed={!!conectado && estado.modo === 'manual'} onClick={() => enviar({ tipo: 'modo', modo: 'manual' })} disabled={!conectado}>Manual</button>
-          </div>
-
-          <Joystick deshabilitado={!conectado} onCambio={(dir) => { direccionPantalla.current = dir }} />
-          <p className="control__ayuda">Arrastra el círculo para caminar (también WASD, flechas o un joystick conectado). Al moverte, la demo pasa a modo manual.</p>
-
-          {conectado && (
-            <dl className="control__datos">
-              <div><dt>Posición</dt><dd className="mono">{formatearCoords(estado.posicion)}</dd></div>
-              <div><dt>Rumbo</dt><dd className="mono">{String(Math.round(estado.rumbo) % 360).padStart(3, '0')}°</dd></div>
-              <div><dt>Próxima parada</dt><dd>{estado.proxima ? `${estado.proxima.nombre} · ${formatearDistancia(estado.proxima.faltaM)}` : 'Llegaste al destino'}</dd></div>
-              <div><dt>Distancia restante</dt><dd className="mono">{formatearDistancia(estado.restante ?? 0)}</dd></div>
-              {estado.monitoreo && (
-                <>
-                  <div><dt>Oxígeno en el tanque</dt><dd className="mono">{Math.round(estado.monitoreo.oxigenoRestanteG ?? 0)} g · {Math.round(estado.monitoreo.oxigenoPct ?? 0)} %</dd></div>
-                  <div><dt>Oxígeno para volver</dt><dd className="mono">{Math.round(estado.monitoreo.costoRegresoG ?? 0)} g</dd></div>
-                </>
-              )}
-              {estado.metricasViaje && (
-                <div><dt>Tiempo para terminar</dt><dd className="mono">{estado.metricasViaje.tiempoMin} min</dd></div>
-              )}
-            </dl>
+          ) : (
+            <Caminata estado={estado} enviar={enviar} conectado={conectado} espectador={espectador} direccionPantalla={direccionPantalla} />
           )}
-
-          {conectado && estado.alertas?.length > 0 && (
-            <ul className="control__alertas" aria-label="Alertas del viaje" aria-live="polite">
-              {[...estado.alertas].sort((a, b) => PRIORIDAD[a.nivel] - PRIORIDAD[b.nivel]).map((a) => (
-                <li key={a.id} className={`alerta alerta--${a.nivel}`}>
-                  <div className="alerta__cuerpo">
-                    <span className="alerta__nivel">{ETIQUETAS[a.nivel] ?? a.nivel}</span>
-                    <span className="alerta__titulo">{a.mensaje}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <button type="button" className="boton--texto" onClick={() => enviar({ tipo: 'accion', accion: 'salir' })}>← Planificar otro viaje</button>
         </>
       )}
     </div>
+  )
+}
+
+// Controles y datos de la caminata. El espectador ve los datos, pero no los mandos.
+function Caminata({ estado, enviar, conectado, espectador, direccionPantalla }) {
+  return (
+    <>
+      <div className={`control__mandos ${espectador ? 'control__solo-ver' : ''}`} inert={espectador || undefined}>
+        <div className="control__fila">
+          {conectado && estado.enMarcha
+            ? <button type="button" className="boton boton--principal" onClick={() => enviar({ tipo: 'accion', accion: 'pausar' })}>Pausar</button>
+            : <button type="button" className="boton boton--principal" onClick={() => enviar({ tipo: 'accion', accion: 'iniciar' })} disabled={!conectado}>{conectado && estado.terminado ? 'Repetir' : 'Iniciar'}</button>}
+          <button type="button" onClick={() => enviar({ tipo: 'accion', accion: 'reiniciar' })} disabled={!conectado}>Reiniciar</button>
+          <div className="segmentado segmentado--mono" role="group" aria-label="Velocidad">
+            {[1, 10, 60].map((v) => (
+              <button key={v} type="button" aria-pressed={!!conectado && estado.velocidad === v} onClick={() => enviar({ tipo: 'velocidad', valor: v })} disabled={!conectado}>x{v}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="segmentado control__modo" role="group" aria-label="Modo de control">
+          <button type="button" aria-pressed={!!conectado && estado.modo === 'auto'} onClick={() => enviar({ tipo: 'modo', modo: 'auto' })} disabled={!conectado}>Ruta automática</button>
+          <button type="button" aria-pressed={!!conectado && estado.modo === 'manual'} onClick={() => enviar({ tipo: 'modo', modo: 'manual' })} disabled={!conectado}>Manual</button>
+        </div>
+
+        <Joystick deshabilitado={!conectado} onCambio={(dir) => { direccionPantalla.current = dir }} />
+        <p className="control__ayuda">Arrastra el círculo para caminar (también WASD, flechas o un joystick conectado). Al moverte, la demo pasa a modo manual.</p>
+      </div>
+
+      {conectado && (
+        <dl className="control__datos">
+          <div><dt>Posición</dt><dd className="mono">{formatearCoords(estado.posicion)}</dd></div>
+          <div><dt>Rumbo</dt><dd className="mono">{String(Math.round(estado.rumbo) % 360).padStart(3, '0')}°</dd></div>
+          <div><dt>Próxima parada</dt><dd>{estado.proxima ? `${estado.proxima.nombre} · ${formatearDistancia(estado.proxima.faltaM)}` : 'Llegaste al destino'}</dd></div>
+          <div><dt>Distancia restante</dt><dd className="mono">{formatearDistancia(estado.restante ?? 0)}</dd></div>
+          {estado.monitoreo && (
+            <>
+              <div><dt>Oxígeno en el tanque</dt><dd className="mono">{Math.round(estado.monitoreo.oxigenoRestanteG ?? 0)} g · {Math.round(estado.monitoreo.oxigenoPct ?? 0)} %</dd></div>
+              <div><dt>Oxígeno para volver</dt><dd className="mono">{Math.round(estado.monitoreo.costoRegresoG ?? 0)} g</dd></div>
+            </>
+          )}
+          {estado.metricasViaje && (
+            <div><dt>Tiempo para terminar</dt><dd className="mono">{estado.metricasViaje.tiempoMin} min</dd></div>
+          )}
+        </dl>
+      )}
+
+      {conectado && estado.alertas?.length > 0 && (
+        <ul className="control__alertas" aria-label="Alertas del viaje" aria-live="polite">
+          {[...estado.alertas].sort((a, b) => PRIORIDAD[a.nivel] - PRIORIDAD[b.nivel]).map((a) => (
+            <li key={a.id} className={`alerta alerta--${a.nivel}`}>
+              <div className="alerta__cuerpo">
+                <span className="alerta__nivel">{ETIQUETAS[a.nivel] ?? a.nivel}</span>
+                <span className="alerta__titulo">{a.mensaje}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!espectador && <button type="button" className="boton--texto" onClick={() => enviar({ tipo: 'accion', accion: 'salir' })}>← Planificar otro viaje</button>}
+    </>
   )
 }

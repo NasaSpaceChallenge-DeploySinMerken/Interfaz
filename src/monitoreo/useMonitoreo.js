@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { enviarMonitoreo, obtenerMetricasViaje } from '../api/cliente'
 import { distancia } from '../mapa/geo'
 import { abrirCanal } from '../control/canal'
+import { admitir, pilotoActual } from '../control/piloto'
 import { CODIGO_SESION } from '../control/sesion'
 import { crearSensoresSimulados } from './sensoresSimulados'
 
@@ -79,6 +80,7 @@ export function useMonitoreo(viaje, onSalir) {
   // control remoto: recibe dirección y modo, y le manda el estado 4 veces por segundo
   useEffect(() => {
     const canal = abrirCanal('demo', CODIGO_SESION, (msg) => {
+      if (!admitir(msg)) return // solo manda el piloto; los demás miran
       remoto.current.ultimo = Date.now()
       setControlRemoto(true)
       if (msg.tipo === 'direccion') {
@@ -113,6 +115,7 @@ export function useMonitoreo(viaje, onSalir) {
         metricasViaje: metricasRef.current,
         monitoreo: monitoreoRef.current,
         t: l.t,
+        piloto: pilotoActual(),
       })
     }, 250)
     return () => { clearInterval(id); canal.cerrar() }

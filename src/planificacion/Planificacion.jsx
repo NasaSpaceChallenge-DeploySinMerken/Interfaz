@@ -19,6 +19,7 @@ import { Metricas } from './Metricas'
 import { FormCoordenadas } from './FormCoordenadas'
 import { MapaPlanificacion } from './MapaPlanificacion'
 import { abrirCanal } from '../control/canal'
+import { admitir, pilotoActual } from '../control/piloto'
 import { CODIGO_SESION } from '../control/sesion'
 import { AvisoEsTelefono, EnlaceTelefono } from '../control/EnlaceTelefono'
 import { BotonPantallaCompleta } from '../mapa/BotonPantallaCompleta'
@@ -190,6 +191,7 @@ export function Planificacion({ onComenzar }) {
   const [ahora, setAhora] = useState(Date.now())
   useEffect(() => {
     canal.current = abrirCanal('demo', CODIGO_SESION, (msg) => {
+      if (!admitir(msg)) return // solo manda el piloto
       setUltimoTelefono(Date.now())
       if (msg.tipo === 'plan') ordenes.current[msg.accion]?.(msg)
     })
@@ -199,7 +201,7 @@ export function Planificacion({ onComenzar }) {
   // estado → teléfono: en cada cambio y una vez por segundo
   const estado = {
     tipo: 'estado', fase: 'planificacion', capas, activas: [...activas], aterrizaje, puntos, volver, modo,
-    calculando, errorRuta, idsConError, aviso, resultado, maxPuntos: MAX_PUNTOS,
+    calculando, errorRuta, idsConError, aviso, resultado, maxPuntos: MAX_PUNTOS, piloto: pilotoActual(),
   }
   const estadoRef = useRef(estado)
   estadoRef.current = estado
@@ -207,7 +209,7 @@ export function Planificacion({ onComenzar }) {
     canal.current?.enviar(estadoRef.current)
   }, [capas, activas, aterrizaje, puntos, volver, modo, calculando, errorRuta, aviso, resultado])
   useEffect(() => {
-    const id = setInterval(() => { canal.current?.enviar(estadoRef.current); setAhora(Date.now()) }, 1000)
+    const id = setInterval(() => { canal.current?.enviar({ ...estadoRef.current, piloto: pilotoActual() }); setAhora(Date.now()) }, 1000)
     return () => clearInterval(id)
   }, [])
   const telefonoConectado = ahora - ultimoTelefono < ESPERA_TELEFONO_MS
