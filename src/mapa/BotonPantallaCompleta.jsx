@@ -1,3 +1,4 @@
+import { tr } from '../idioma'
 // Botón para poner la demo en pantalla completa (para la presentación).
 // Si el navegador no lo permite (por ejemplo, Safari en iPhone), no se muestra.
 
@@ -21,7 +22,7 @@ export function BotonPantallaCompleta({ className = '' }) {
     if (document.fullscreenElement) document.exitFullscreen()
     else document.documentElement.requestFullscreen().catch(() => {})
   }
-  const texto = activa ? 'Salir de pantalla completa' : 'Pantalla completa'
+  const texto = activa ? tr('Salir de pantalla completa') : tr('Pantalla completa')
 
   return (
     <button type="button" className={`boton-pantalla ${className}`} onClick={alternar} aria-label={texto} title={texto} aria-pressed={activa}>

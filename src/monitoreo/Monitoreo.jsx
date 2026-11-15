@@ -1,3 +1,4 @@
+import { tr, trPunto } from '../idioma'
 // Fase 2: monitorear la caminata.
 // Mapa grande que sigue al astronauta, minimapa del recorrido y alertas del backend.
 // En modo manual el astronauta se controla con teclado, cruceta o joystick.
@@ -29,16 +30,16 @@ export function Monitoreo({ viaje, onSalir }) {
   const avisos = [
     ...(rutaPerdida ? [{
       id: 'ruta-perdida',
-      etiqueta: 'Monitoreo',
-      titulo: 'Se perdió el seguimiento de esta ruta',
-      detalle: 'El servicio de monitoreo se reinició. Para seguir, vuelve a planificar el viaje.',
-      accion: { texto: 'Volver a planificar', onClick: onSalir },
+      etiqueta: tr('Monitoreo'),
+      titulo: tr('Se perdió el seguimiento de esta ruta'),
+      detalle: tr('El servicio de monitoreo se reinició. Para seguir, vuelve a planificar el viaje.'),
+      accion: { texto: tr('Volver a planificar'), onClick: onSalir },
     }] : []),
     ...(lectura.fueraDeZona ? [{
       id: 'borde-tramo',
-      etiqueta: 'Demo',
-      titulo: 'Borde del tramo de la demo',
-      detalle: 'No se puede seguir en esa dirección.',
+      etiqueta: tr('Demo'),
+      titulo: tr('Borde del tramo de la demo'),
+      detalle: tr('No se puede seguir en esa dirección.'),
     }] : []),
   ]
   const [z, setZ] = useState(15)
@@ -69,13 +70,13 @@ export function Monitoreo({ viaje, onSalir }) {
                   <g key={p.id} transform={`translate(${x} ${y})`}>
                     <circle r="11" className="hud-parada" />
                     <text y="4" className="hud-parada__num">{i + 1}</text>
-                    <text x="18" y="5" className="etiqueta-mapa">{p.nombre}</text>
+                    <text x="18" y="5" className="etiqueta-mapa">{trPunto(p.nombre)}</text>
                   </g>
                 )
               })}
               <g transform={`translate(${bx} ${by})`}>
                 <rect x="-12" y="-12" width="24" height="24" rx="5" className="hud-base" />
-                <text x="18" y="5" className="etiqueta-mapa">Aterrizaje</text>
+                <text x="18" y="5" className="etiqueta-mapa">{tr("Aterrizaje")}</text>
               </g>
               <g transform={`translate(${tam.ancho / 2} ${tam.alto / 2})`}>
                 <circle r="34" className="hud-astronauta__halo" />
@@ -94,17 +95,17 @@ export function Monitoreo({ viaje, onSalir }) {
         <div className="lateral">
           <Minimapa capas={viaje.capas} camino={camino} rutasSalidas={rutasSalidas} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
           <Tarjeta
-            etiqueta="Próxima parada"
-            resumen={lectura.proxima ? `${lectura.proxima.nombre} · ${formatearDistancia(lectura.proxima.faltaM)}` : 'Llegaste'}
+            etiqueta={tr("Próxima parada")}
+            resumen={lectura.proxima ? `${trPunto(lectura.proxima.nombre)} · ${formatearDistancia(lectura.proxima.faltaM)}` : tr('Llegaste')}
             className="objetivo"
-            ariaLabel="Recorrido"
+            ariaLabel={tr("Recorrido")}
           >
             <div className="objetivo__fila objetivo__fila--titulo">
-              <span className="objetivo__nombre">{lectura.proxima ? lectura.proxima.nombre : 'Llegaste al destino'}</span>
+              <span className="objetivo__nombre">{lectura.proxima ? trPunto(lectura.proxima.nombre) : tr('Llegaste al destino')}</span>
               <span className="mono objetivo__dato">{lectura.proxima ? formatearDistancia(lectura.proxima.faltaM) : '—'}</span>
             </div>
-            <div className="objetivo__fila"><span>Hasta {destino?.nombre ?? 'el final'}</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
-            <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
+            <div className="objetivo__fila"><span>{tr("Hasta")} {destino ? trPunto(destino.nombre) : tr('el final')}</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
+            <div className="objetivo__fila"><span>{tr("Recorrido")}</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
           </Tarjeta>
           <PanelOxigeno monitoreo={monitoreo} error={errorMonitoreo} />
           <PanelVitales signos={signos} />
@@ -121,13 +122,13 @@ export function Monitoreo({ viaje, onSalir }) {
             <span className="mono">{e.texto}</span>
           </div>
           <div className="zoom-hud">
-            <button type="button" onClick={() => setZ((v) => Math.max(12, v - 1))} aria-label="Alejar">−</button>
-            <button type="button" onClick={() => setZ((v) => Math.min(17, v + 1))} aria-label="Acercar">+</button>
+            <button type="button" onClick={() => setZ((v) => Math.max(12, v - 1))} aria-label={tr("Alejar")}>−</button>
+            <button type="button" onClick={() => setZ((v) => Math.min(17, v + 1))} aria-label={tr("Acercar")}>+</button>
           </div>
         </div>
 
         <p className="panel creditos-hud">
-          Imágenes: NASA Mars Trek (CTX: NASA/JPL-Caltech/MSSS · HiRISE: NASA/JPL-Caltech/Univ. of Arizona), coloreadas para el diseño.
+          {tr("Imágenes: NASA Mars Trek (CTX: NASA/JPL-Caltech/MSSS · HiRISE: NASA/JPL-Caltech/Univ. of Arizona), coloreadas para el diseño.")}
         </p>
 
       </div>

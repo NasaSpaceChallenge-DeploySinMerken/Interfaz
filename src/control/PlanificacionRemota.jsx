@@ -1,3 +1,4 @@
+import { tr, trPunto } from '../idioma'
 // Preparar el viaje desde el teléfono.
 //
 // Usa los mismos componentes que la pantalla de planificación, pero cada acción
@@ -16,7 +17,7 @@ export function PlanificacionRemota({ estado, enviar }) {
   const plan = (accion, datos = {}) => enviar({ tipo: 'plan', accion, ...datos })
   const { capas, activas, aterrizaje, puntos, volver, modo, calculando, errorRuta, idsConError, aviso, resultado, maxPuntos } = estado
   const capasVisibles = capas.filter((c) => activas.includes(c.id))
-  const nombres = Object.fromEntries([['aterrizaje', 'Aterrizaje'], ...puntos.map((p) => [p.id, p.nombre])])
+  const nombres = Object.fromEntries([['aterrizaje', tr('Aterrizaje')], ...puntos.map((p) => [p.id, trPunto(p.nombre)])])
 
   return (
     <div className="control__plan">
@@ -35,20 +36,20 @@ export function PlanificacionRemota({ estado, enviar }) {
           idsConError={idsConError}
         />
       </div>
-      <p className="control__ayuda">Toca el mapa para marcar. Lo que marques aparece en la demo.</p>
+      <p className="control__ayuda">{tr("Toca el mapa para marcar. Lo que marques aparece en la demo.")}</p>
 
       <section className="paso" aria-labelledby="tr-aterrizaje">
-        <h2 className="paso__titulo" id="tr-aterrizaje"><span className="paso__num">1</span>Punto de aterrizaje</h2>
+        <h2 className="paso__titulo" id="tr-aterrizaje"><span className="paso__num">1</span>{tr("Punto de aterrizaje")}</h2>
         {aterrizaje
           ? <div className="aterrizaje-actual"><span className="marca-base" aria-hidden="true" /><span className="mono">{formatearCoords(aterrizaje)}</span></div>
-          : <p className="paso__ayuda">Elige "Aterrizaje" arriba del mapa y toca donde quieras, o escribe las coordenadas.</p>}
-        <FormCoordenadas textoBoton="Fijar aterrizaje" onEnviar={(p) => plan('fijarAterrizaje', { lon: p.lon, lat: p.lat })} />
+          : <p className="paso__ayuda">{tr("Elige \"Aterrizaje\" arriba del mapa y toca donde quieras, o escribe las coordenadas.")}</p>}
+        <FormCoordenadas textoBoton={tr("Fijar aterrizaje")} onEnviar={(p) => plan('fijarAterrizaje', { lon: p.lon, lat: p.lat })} />
       </section>
 
       <section className="paso" aria-labelledby="tr-puntos">
         <h2 className="paso__titulo" id="tr-puntos">
-          <span className="paso__num">2</span>Puntos a visitar
-          <span className={`paso__contador mono ${puntos.length >= maxPuntos ? 'lleno' : ''}`}>{puntos.length} de {maxPuntos}</span>
+          <span className="paso__num">2</span>{tr("Puntos a visitar")}
+          <span className={`paso__contador mono ${puntos.length >= maxPuntos ? 'lleno' : ''}`}>{puntos.length} {tr("de")} {maxPuntos}</span>
         </h2>
         <ListaPuntos
           puntos={puntos}
@@ -60,33 +61,33 @@ export function PlanificacionRemota({ estado, enviar }) {
         />
         <label className="check">
           <input type="checkbox" checked={volver} onChange={(e) => plan('volver', { valor: e.target.checked })} />
-          <span>Volver al punto de aterrizaje<small>La ruta termina donde empezó.</small></span>
+          <span>{tr("Volver al punto de aterrizaje")}<small>{tr("La ruta termina donde empezó.")}</small></span>
         </label>
         <div className="acciones">
-          <button type="button" className="boton--texto" onClick={() => plan('ejemplo')}>Cargar ejemplo</button>
-          <button type="button" className="boton--texto" onClick={() => plan('borrar')}>Borrar todo</button>
+          <button type="button" className="boton--texto" onClick={() => plan('ejemplo')}>{tr("Cargar ejemplo")}</button>
+          <button type="button" className="boton--texto" onClick={() => plan('borrar')}>{tr("Borrar todo")}</button>
         </div>
       </section>
 
       <section className="paso" aria-labelledby="tr-capas">
-        <h2 className="paso__titulo" id="tr-capas"><span className="paso__num">3</span>Capas del mapa</h2>
+        <h2 className="paso__titulo" id="tr-capas"><span className="paso__num">3</span>{tr("Capas del mapa")}</h2>
         <SelectorCapas capas={capas} activas={new Set(activas)} onCambiar={(id) => plan('capa', { id })} />
       </section>
 
       {resultado && (
         <section className="paso" aria-labelledby="tr-resultado" aria-live="polite">
-          <h2 className="paso__titulo" id="tr-resultado"><span className="paso__num">4</span>Ruta calculada</h2>
+          <h2 className="paso__titulo" id="tr-resultado"><span className="paso__num">4</span>{tr("Ruta calculada")}</h2>
           <Metricas resultado={resultado} nombres={nombres} />
         </section>
       )}
 
       <div className="control__pie">
-        {errorRuta && <p className="error" role="alert">{errorRuta}</p>}
+        {errorRuta && <p className="error" role="alert">{tr(errorRuta)}</p>}
         {resultado ? (
-          <button type="button" className="boton boton--principal" onClick={() => plan('comenzar')}>Comenzar caminata →</button>
+          <button type="button" className="boton boton--principal" onClick={() => plan('comenzar')}>{tr("Comenzar caminata →")}</button>
         ) : (
           <button type="button" className="boton boton--principal" onClick={() => plan('calcular')} disabled={!aterrizaje || !puntos.length || calculando}>
-            {calculando ? 'Calculando…' : 'Calcular ruta'}
+            {calculando ? tr('Calculando…') : tr('Calcular ruta')}
           </button>
         )}
       </div>

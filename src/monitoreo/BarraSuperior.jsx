@@ -1,3 +1,4 @@
+import { tr } from '../idioma'
 // Panel de la misión: tiempo, modo de control y controles de la simulación.
 
 import { BotonPantallaCompleta } from '../mapa/BotonPantallaCompleta'
@@ -13,29 +14,29 @@ function formatearTiempo(segundos) {
 
 export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones, onSalir }) {
   return (
-    <section className="panel mision" aria-label="Misión">
+    <section className="panel mision" aria-label={tr("Misión")}>
       <div className="mision__cabecera">
         <div>
           <h1 className="mision__titulo">MARTIAN MAP</h1>
-          <p className="mision__lugar">Cráter Gale · Caminata en curso</p>
+          <p className="mision__lugar">{tr("Cráter Gale · Caminata en curso")}</p>
         </div>
         <BotonPantallaCompleta />
       </div>
       <div className="mision__tiempo">
-        <div className="etiqueta">Tiempo de misión</div>
+        <div className="etiqueta">{tr("Tiempo de misión")}</div>
         <div className="mision__reloj mono">{formatearTiempo(t)}</div>
       </div>
 
       <div className="mision__grupo">
-        <span className="etiqueta" id="etiqueta-control">Control</span>
+        <span className="etiqueta" id="etiqueta-control">{tr("Control")}</span>
         <div className="segmentado" role="group" aria-labelledby="etiqueta-control">
-          <button type="button" aria-pressed={modo === 'auto'} onClick={() => acciones.cambiarModo('auto')}><span className="solo-grande">Ruta automática</span><span className="solo-telefono">Automática</span></button>
-          <button type="button" aria-pressed={modo === 'manual'} onClick={() => acciones.cambiarModo('manual')}>Manual</button>
+          <button type="button" aria-pressed={modo === 'auto'} onClick={() => acciones.cambiarModo('auto')}><span className="solo-grande">{tr("Ruta automática")}</span><span className="solo-telefono">{tr("Automática")}</span></button>
+          <button type="button" aria-pressed={modo === 'manual'} onClick={() => acciones.cambiarModo('manual')}>{tr("Manual")}</button>
         </div>
         <div className="mision__remoto-fila">
-          <span className="mision__codigo">Código del control: <strong className="mono">{codigoSesion}</strong></span>
+          <span className="mision__codigo">{tr("Código del control:")} <strong className="mono">{codigoSesion}</strong></span>
           {controlRemoto
-            ? <span className="mision__remoto"><span className="punto-estado" aria-hidden="true" />Conectado</span>
+            ? <span className="mision__remoto"><span className="punto-estado" aria-hidden="true" />{tr("Conectado")}</span>
             : (
               // en una ventana aparte: si fuera otra pestaña, la demo quedaría oculta y el navegador la pausaría
               <a
@@ -44,11 +45,11 @@ export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, cod
                 target="_blank"
                 rel="noopener"
                 onClick={(e) => {
-                  const ventana = window.open(`${window.location.pathname}#control=${codigoSesion}`, 'martian-map-control', 'popup,width=420,height=780')
+                  const ventana = window.open(`${window.location.pathname}${window.location.search}#control=${codigoSesion}`, 'martian-map-control', 'popup,width=420,height=780')
                   if (ventana) e.preventDefault()
                 }}
               >
-                Abrir ↗
+                {tr("Abrir ↗")}
               </a>
             )}
         </div>
@@ -56,17 +57,17 @@ export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, cod
 
       <div className="controles">
         {enMarcha
-          ? <button type="button" onClick={acciones.pausar}>Pausar</button>
-          : <button type="button" onClick={acciones.iniciar}>Iniciar</button>}
-        <button type="button" onClick={acciones.reiniciar}>Reiniciar</button>
-        <div className="segmentado segmentado--mono" role="group" aria-label="Velocidad">
+          ? <button type="button" onClick={acciones.pausar}>{tr("Pausar")}</button>
+          : <button type="button" onClick={acciones.iniciar}>{tr("Iniciar")}</button>}
+        <button type="button" onClick={acciones.reiniciar}>{tr("Reiniciar")}</button>
+        <div className="segmentado segmentado--mono" role="group" aria-label={tr("Velocidad")}>
           {VELOCIDADES.map((v) => (
-            <button key={v} type="button" aria-pressed={velocidad === v} onClick={() => acciones.cambiarVelocidad(v)}>x{v}</button>
+            <button key={v} type="button" aria-pressed={velocidad === v} onClick={() => acciones.cambiarVelocidad(v)}>{tr("x")}{v}</button>
           ))}
         </div>
       </div>
       <span className="mision__salto" aria-hidden="true" />
-      <button type="button" className="boton--texto mision__salir" onClick={onSalir}><span className="solo-grande">← Planificar otro viaje</span><span className="solo-telefono">← Planificar</span></button>
+      <button type="button" className="boton--texto mision__salir" onClick={onSalir}><span className="solo-grande">{tr("← Planificar otro viaje")}</span><span className="solo-telefono">{tr("← Planificar")}</span></button>
     </section>
   )
 }

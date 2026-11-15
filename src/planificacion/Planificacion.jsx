@@ -1,3 +1,4 @@
+import { tr, trPunto } from '../idioma'
 // Fase 1: preparar el viaje.
 //
 // 1. Pide las capas al backend.
@@ -56,7 +57,7 @@ export function Planificacion({ onComenzar }) {
   const esperandoAnalisis = !usaBackendFalso && resultado && resultado.estadoAnalisis !== 'analyzed'
   useEffect(() => {
     if (!esperandoAnalisis) return
-    const inicio = { id: 'aterrizaje', nombre: 'Aterrizaje', ...aterrizaje }
+    const inicio = { id: 'aterrizaje', nombre: tr('Aterrizaje'), ...aterrizaje }
     const secuencia = [inicio, ...puntos, ...(volver ? [inicio] : [])]
     const id = setInterval(async () => {
       try {
@@ -153,7 +154,7 @@ export function Planificacion({ onComenzar }) {
   }
 
   const capasVisibles = capas.filter((c) => activas.has(c.id))
-  const nombres = Object.fromEntries([['aterrizaje', 'Aterrizaje'], ...puntos.map((p) => [p.id, p.nombre])])
+  const nombres = Object.fromEntries([['aterrizaje', tr('Aterrizaje')], ...puntos.map((p) => [p.id, trPunto(p.nombre)])])
 
   const comenzar = () => {
     if (!resultado) return
@@ -171,7 +172,7 @@ export function Planificacion({ onComenzar }) {
     fijarAterrizaje: (m) => (dentroDe(TRAMO, m) ? fijarAterrizaje(m) : avisar('Ese punto está fuera del tramo de la demo.')),
     agregar: (m) => {
       if (!dentroDe(TRAMO, m)) return avisar('Ese punto está fuera del tramo de la demo.')
-      if (!aterrizaje) return avisar('Primero marca el punto de aterrizaje.')
+      if (!aterrizaje) return avisar(tr('Primero marca el punto de aterrizaje.'))
       agregarPunto({ lon: m.lon, lat: m.lat, nombre: m.nombre })
     },
     quitar: (m) => { setPuntos((l) => l.filter((p) => p.id !== m.id)); cambio() },
@@ -216,19 +217,19 @@ export function Planificacion({ onComenzar }) {
 
   return (
     <div className="planificacion">
-      <aside className="panel-lateral" aria-label="Preparar el viaje">
+      <aside className="panel-lateral" aria-label={tr("Preparar el viaje")}>
         <header className="cabecera">
           <BotonPantallaCompleta />
           <p className="cabecera__marca">MARTIAN MAP</p>
-          <h1 className="cabecera__titulo">Preparar el viaje</h1>
-          <p className="cabecera__lugar">Cráter Gale · 137.30–137.60° E, 4.50–4.75° S</p>
+          <h1 className="cabecera__titulo">{tr("Preparar el viaje")}</h1>
+          <p className="cabecera__lugar">{tr("Cráter Gale · 137.30–137.60° E, 4.50–4.75° S")}</p>
         </header>
 
         <AvisoEsTelefono />
         <EnlaceTelefono conectado={telefonoConectado} />
 
         <section className="paso" aria-labelledby="t-capas">
-          <h2 className="paso__titulo" id="t-capas"><span className="paso__num">1</span>Capas del mapa</h2>
+          <h2 className="paso__titulo" id="t-capas"><span className="paso__num">1</span>{tr("Capas del mapa")}</h2>
           <SelectorCapas
             capas={capas}
             activas={activas}
@@ -238,7 +239,7 @@ export function Planificacion({ onComenzar }) {
         </section>
 
         <section className="paso" aria-labelledby="t-aterrizaje">
-          <h2 className="paso__titulo" id="t-aterrizaje"><span className="paso__num">2</span>Punto de aterrizaje</h2>
+          <h2 className="paso__titulo" id="t-aterrizaje"><span className="paso__num">2</span>{tr("Punto de aterrizaje")}</h2>
           {aterrizaje && (
             <div className="aterrizaje-actual">
               <span className="marca-base" aria-hidden="true" />
@@ -247,16 +248,16 @@ export function Planificacion({ onComenzar }) {
           )}
           <p className="paso__ayuda">
             {aterrizaje
-              ? 'Para cambiarlo, elige "Aterrizaje" arriba del mapa y haz clic, o escribe otras coordenadas.'
-              : 'Haz clic en el mapa o escribe las coordenadas.'}
+              ? tr('Para cambiarlo, elige "Aterrizaje" arriba del mapa y haz clic, o escribe otras coordenadas.')
+              : tr('Haz clic en el mapa o escribe las coordenadas.')}
           </p>
-          <FormCoordenadas textoBoton="Fijar aterrizaje" onEnviar={fijarAterrizaje} />
+          <FormCoordenadas textoBoton={tr("Fijar aterrizaje")} onEnviar={fijarAterrizaje} />
         </section>
 
         <section className="paso" aria-labelledby="t-puntos">
           <h2 className="paso__titulo" id="t-puntos">
-            <span className="paso__num">3</span>Puntos a visitar
-            <span className={`paso__contador mono ${puntos.length >= MAX_PUNTOS ? 'lleno' : ''}`}>{puntos.length} de {MAX_PUNTOS}</span>
+            <span className="paso__num">3</span>{tr("Puntos a visitar")}
+            <span className={`paso__contador mono ${puntos.length >= MAX_PUNTOS ? 'lleno' : ''}`}>{puntos.length} {tr("de")} {MAX_PUNTOS}</span>
           </h2>
           <ListaPuntos
             puntos={puntos}
@@ -268,34 +269,34 @@ export function Planificacion({ onComenzar }) {
           />
           <label className="check">
             <input type="checkbox" checked={volver} onChange={(e) => { setVolver(e.target.checked); cambio() }} />
-            <span>Volver al punto de aterrizaje<small>La ruta termina donde empezó.</small></span>
+            <span>{tr("Volver al punto de aterrizaje")}<small>{tr("La ruta termina donde empezó.")}</small></span>
           </label>
           <div className="acciones">
-            <button type="button" className="boton--texto" onClick={cargarEjemplo}>Cargar ejemplo</button>
-            <button type="button" className="boton--texto" onClick={borrarTodo}>Borrar todo</button>
+            <button type="button" className="boton--texto" onClick={cargarEjemplo}>{tr("Cargar ejemplo")}</button>
+            <button type="button" className="boton--texto" onClick={borrarTodo}>{tr("Borrar todo")}</button>
           </div>
         </section>
 
         {resultado && (
           <section className="paso" aria-labelledby="t-resultado" aria-live="polite">
-            <h2 className="paso__titulo" id="t-resultado"><span className="paso__num">4</span>Ruta calculada</h2>
+            <h2 className="paso__titulo" id="t-resultado"><span className="paso__num">4</span>{tr("Ruta calculada")}</h2>
             <Metricas resultado={resultado} nombres={nombres} />
           </section>
         )}
 
         <footer className="pie">
-          {errorRuta && <p className="error" role="alert">{errorRuta}</p>}
+          {errorRuta && <p className="error" role="alert">{tr(errorRuta)}</p>}
           {resultado ? (
             <button
               type="button"
               className="boton boton--principal"
               onClick={comenzar}
             >
-              Comenzar caminata →
+              {tr("Comenzar caminata →")}
             </button>
           ) : (
             <button type="button" className="boton boton--principal" onClick={calcular} disabled={!aterrizaje || !puntos.length || calculando}>
-              {calculando ? 'Calculando…' : 'Calcular ruta'}
+              {calculando ? tr('Calculando…') : tr('Calcular ruta')}
             </button>
           )}
         </footer>

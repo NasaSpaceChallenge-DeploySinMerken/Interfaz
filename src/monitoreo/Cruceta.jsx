@@ -1,3 +1,4 @@
+import { tr } from '../idioma'
 // Cruceta en pantalla para mover al astronauta en modo manual.
 // Se mantiene apretada para caminar; al soltar se detiene.
 
@@ -17,7 +18,7 @@ export function Cruceta({ onMover }) {
   const soltar = () => onMover(null)
 
   return (
-    <section className="panel cruceta" aria-label="Control manual">
+    <section className="panel cruceta" aria-label={tr("Control manual")}>
       <div className="cruceta__botones">
         {BOTONES.map((b, i) =>
           b ? (
@@ -37,7 +38,7 @@ export function Cruceta({ onMover }) {
           ),
         )}
       </div>
-      <p className="cruceta__ayuda">Mantén apretado, o usa WASD, las flechas o un joystick.</p>
+      <p className="cruceta__ayuda">{tr("Mantén apretado, o usa WASD, las flechas o un joystick.")}</p>
     </section>
   )
 }

@@ -1,3 +1,4 @@
+import { idiomaActual, tr } from '../idioma'
 // Muestra en la demo la dirección exacta que hay que abrir en el teléfono,
 // con la IP de la red y el código de esta demo ya puestos.
 // Las direcciones de red las entrega el servidor de Vite (vite.config.js).
@@ -46,20 +47,25 @@ export function EnlaceTelefono({ conectado }) {
   }, [])
 
   const base = red?.length ? preferida(red) : null
-  const direccion = base ? `${base.replace(/\/$/, '')}/#control=${CODIGO_SESION}` : null
+  const direccion = base ? (() => {
+    const url = new URL(`${base.replace(/\/$/, '')}/`)
+    if (idiomaActual() === 'en') url.searchParams.set('lang', 'en')
+    url.hash = `control=${CODIGO_SESION}`
+    return url.toString()
+  })() : null
 
   if (conectado) {
     return (
       <p className="telefono telefono--ok" role="status">
         <span className="punto-estado" aria-hidden="true" />
-        Teléfono conectado · código <strong className="mono">{CODIGO_SESION}</strong>
+        {tr("Teléfono conectado · código")} <strong className="mono">{CODIGO_SESION}</strong>
       </p>
     )
   }
 
   return (
     <div className="telefono">
-      <p className="telefono__titulo">Controlar desde el teléfono</p>
+      <p className="telefono__titulo">{tr("Controlar desde el teléfono")}</p>
       {direccion ? (
         <>
           <div className="telefono__qr-fila">
@@ -67,8 +73,8 @@ export function EnlaceTelefono({ conectado }) {
             <div>
               <p className="telefono__ayuda">
                 {import.meta.env.VITE_SERVIDOR === 'propio'
-                  ? 'Lee el QR con la cámara del teléfono, o abre:'
-                  : 'Lee el QR con la cámara del teléfono (en la misma Wi-Fi), o abre:'}
+                  ? tr('Lee el QR con la cámara del teléfono, o abre:')
+                  : tr('Lee el QR con la cámara del teléfono (en la misma Wi-Fi), o abre:')}
               </p>
               <p className="telefono__direccion mono">{direccion}</p>
             </div>
@@ -76,11 +82,11 @@ export function EnlaceTelefono({ conectado }) {
         </>
       ) : red && !import.meta.env.DEV ? (
         <p className="telefono__ayuda">
-          El control desde el teléfono funciona con la interfaz corriendo en un computador (<code>npm run dev -- --host</code>). Aquí solo sirve otra ventana de este navegador. Código: <strong className="mono">{CODIGO_SESION}</strong>
+          {tr("El control desde el teléfono funciona con la interfaz corriendo en un computador (")}<code>{tr("npm run dev -- --host")}</code>{tr("). Aquí solo sirve otra ventana de este navegador. Código:")} <strong className="mono">{CODIGO_SESION}</strong>
         </p>
       ) : red ? (
         <p className="telefono__ayuda">
-          Para usar el teléfono, arranca la interfaz con <code>npm run dev -- --host</code>. Código de esta demo: <strong className="mono">{CODIGO_SESION}</strong>
+          {tr("Para usar el teléfono, arranca la interfaz con")} <code>{tr("npm run dev -- --host")}</code>{tr(". Código de esta demo:")} <strong className="mono">{CODIGO_SESION}</strong>
         </p>
       ) : null}
     </div>
@@ -96,9 +102,9 @@ export function AvisoEsTelefono() {
 
   return (
     <div className="aviso-telefono" role="note">
-      <p>Estás en un teléfono. Para manejar la demo que está abierta en el computador, usa este teléfono como control.</p>
+      <p>{tr("Estás en un teléfono. Para manejar la demo que está abierta en el computador, usa este teléfono como control.")}</p>
       <button type="button" className="boton boton--principal" onClick={() => { window.location.hash = 'control' }}>
-        Usar como control
+        {tr("Usar como control")}
       </button>
     </div>
   )

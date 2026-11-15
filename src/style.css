@@ -770,3 +770,36 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .alerta--aviso .alerta__nivel { color: #ffd76a; }
 .alerta--aviso .simulado { color: #e9d9b0; }
 .alerta--critico { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.idioma {
+  position: fixed;
+  z-index: 1000;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #52616b;
+  border-radius: 8px;
+  background: #15212b;
+  box-shadow: 0 3px 12px #0008;
+}
+
+.idioma button {
+  border: 0;
+  border-radius: 5px;
+  padding: 5px 8px;
+  background: transparent;
+  color: #dbe4e8;
+  font: 700 12px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.idioma button[aria-pressed="true"] {
+  background: #f28b5a;
+  color: #17212a;
+}
+
+.idioma button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}

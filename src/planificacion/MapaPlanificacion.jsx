@@ -1,3 +1,4 @@
+import { tr, trPunto } from '../idioma'
 // Mapa de la fase 1: marcar aterrizaje y puntos con un clic.
 
 import { useState } from 'react'
@@ -35,7 +36,7 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
   const e = vista ? escala(vista.z) : null
 
   return (
-    <main className="mapa-planificacion" aria-label="Mapa del cráter Gale. Haz clic para marcar puntos.">
+    <main className="mapa-planificacion" aria-label={tr("Mapa del cráter Gale. Haz clic para marcar puntos.")}>
       <MapaTeselas
         capas={capas}
         interactivo
@@ -64,7 +65,7 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
               {puntos.map((p, i) => {
                 const [x, y] = proyectar(p.lon, p.lat)
                 return (
-                  <Pin key={p.id} x={x} y={y} color={conError(p.id) ? 'var(--critico)' : 'var(--punto)'} borde="#2a1d0a" etiqueta={p.nombre}>
+                  <Pin key={p.id} x={x} y={y} color={conError(p.id) ? 'var(--critico)' : 'var(--punto)'} borde="#2a1d0a" etiqueta={trPunto(p.nombre)}>
                     <text x="0" y="-17" className="pin__num">{i + 1}</text>
                   </Pin>
                 )
@@ -72,7 +73,7 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
               {aterrizaje && (() => {
                 const [x, y] = proyectar(aterrizaje.lon, aterrizaje.lat)
                 return (
-                  <Pin x={x} y={y} color={conError('aterrizaje') ? 'var(--critico)' : 'var(--base)'} borde="#0d1b2a" etiqueta="Aterrizaje">
+                  <Pin x={x} y={y} color={conError('aterrizaje') ? 'var(--critico)' : 'var(--base)'} borde="#0d1b2a" etiqueta={tr("Aterrizaje")}>
                     <rect x="-5" y="-27" width="10" height="10" rx="2" style={{ fill: '#0d1b2a' }} />
                   </Pin>
                 )
@@ -82,19 +83,19 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
         }}
       </MapaTeselas>
 
-      <div className="flotante modo" role="group" aria-label="Qué marcar al hacer clic">
-        <span className="modo__etiqueta">Al hacer clic marcar:</span>
+      <div className="flotante modo" role="group" aria-label={tr("Qué marcar al hacer clic")}>
+        <span className="modo__etiqueta">{tr("Al hacer clic marcar:")}</span>
         <button type="button" aria-pressed={modo === 'aterrizaje'} onClick={() => onModo('aterrizaje')}>
-          <span className="icono-modo icono-modo--base" aria-hidden="true" />Aterrizaje
+          <span className="icono-modo icono-modo--base" aria-hidden="true" />{tr("Aterrizaje")}
         </button>
         <button type="button" aria-pressed={modo === 'punto'} onClick={() => onModo('punto')}>
-          <span className="icono-modo icono-modo--punto" aria-hidden="true" />Punto a visitar
+          <span className="icono-modo icono-modo--punto" aria-hidden="true" />{tr("Punto a visitar")}
         </button>
       </div>
 
       {rutasSalidas && <LeyendaSalidas cantidad={rutasSalidas.length} />}
 
-      <div className={`flotante aviso ${aviso ? 'visible' : ''}`} role="status">{aviso}</div>
+      <div className={`flotante aviso ${aviso ? 'visible' : ''}`} role="status">{tr(aviso)}</div>
 
       <div className="flotante barra-mapa">
         {e && (
@@ -103,16 +104,16 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
             <span className="mono">{e.texto}</span>
           </div>
         )}
-        <span className="mono">{cursor ? formatearCoords(cursor) : 'Mueve el cursor sobre el mapa'}</span>
+        <span className="mono">{cursor ? formatearCoords(cursor) : tr('Mueve el cursor sobre el mapa')}</span>
       </div>
 
       <p className="flotante creditos">
-        Imágenes: CTX (NASA/JPL-Caltech/MSSS) y HiRISE (NASA/JPL-Caltech/Univ. of Arizona), vía NASA Mars Trek. Coloreadas para el diseño.
+        {tr("Imágenes: CTX (NASA/JPL-Caltech/MSSS) y HiRISE (NASA/JPL-Caltech/Univ. of Arizona), vía NASA Mars Trek. Coloreadas para el diseño.")}
       </p>
 
       <div className="flotante zoom">
-        <button type="button" onClick={() => zoomBoton(1)} aria-label="Acercar" disabled={!vista}>+</button>
-        <button type="button" onClick={() => zoomBoton(-1)} aria-label="Alejar" disabled={!vista}>−</button>
+        <button type="button" onClick={() => zoomBoton(1)} aria-label={tr("Acercar")} disabled={!vista}>+</button>
+        <button type="button" onClick={() => zoomBoton(-1)} aria-label={tr("Alejar")} disabled={!vista}>−</button>
       </div>
     </main>
   )
@@ -121,11 +122,11 @@ export function MapaPlanificacion({ capas, aterrizaje, puntos, volver, ruta, rut
 // Leyenda de colores cuando el viaje tiene varias salidas.
 export function LeyendaSalidas({ cantidad, className = '' }) {
   return (
-    <ul className={`flotante leyenda-salidas ${className}`} aria-label="Salidas del viaje">
+    <ul className={`flotante leyenda-salidas ${className}`} aria-label={tr("Salidas del viaje")}>
       {Array.from({ length: cantidad }, (_, i) => (
         <li key={i}>
           <span className="leyenda-salidas__color" style={{ background: colorSalida(i) }} aria-hidden="true" />
-          Salida {i + 1}
+          {tr("Salida")} {i + 1}
         </li>
       ))}
     </ul>

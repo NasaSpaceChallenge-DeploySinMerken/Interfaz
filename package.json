@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test": "node --test src/idioma.test.js",
     "preview": "vite preview",
     "build:servidor": "node scripts/build-servidor.mjs",
     "start": "node servidor/index.js"

@@ -8,6 +8,8 @@ Interfaz del navegador del proyecto [martian-map](https://github.com/NasaSpaceCh
 
 **Demo publicada: [https://martian-map.page](https://martian-map.page)** (Google Cloud, con los backends reales). El teléfono se conecta leyendo el **QR** que muestra la demo en la planificación (o abriendo la dirección con su código, `https://martian-map.page/#control=1234`). El botón ⛶ pone la demo en pantalla completa para la presentación.
 
+El selector **ES / EN** de la esquina superior derecha cambia la interfaz entre español e inglés sin perder el viaje. La elección queda guardada en el navegador; también se puede abrir `https://martian-map.page/?lang=en`. El QR del control incluye el idioma elegido para que el teléfono abra la misma versión.
+
 ## Cómo correrlo
 
 ```bash
@@ -93,7 +95,7 @@ Hoy está desplegado en Google Cloud (sección siguiente). Para desplegarlo en o
 
 ### Despliegue automático en Google Cloud
 
-Cada push a `main` ejecuta `.github/workflows/deploy-gcp.yml`: construye el
+Cada push a `main` ejecuta `.github/workflows/deploy-gcp.yml`: prueba los textos bilingües, construye el
 servidor propio y actualiza Cloud Run `martian-front` en `us-east1`. El dominio
 público es [martian-map.page](https://martian-map.page). `BACKEND_1_URL`,
 `BACKEND_2_URL` y `BACKEND_MONITOREO_URL` apuntan al backend privado de capas;

@@ -1,3 +1,4 @@
+import { tr } from '../idioma'
 // Minimapa con el recorrido completo, las paradas y la posición actual.
 
 import { useMemo } from 'react'
@@ -9,9 +10,9 @@ export function Minimapa({ capas, camino, rutasSalidas, paradas, aterrizaje, lec
   const encuadre = useMemo(() => bboxDe(camino, 0.004), [camino])
 
   return (
-    <section className="panel minimapa" aria-label="Minimapa del recorrido">
+    <section className="panel minimapa" aria-label={tr("Minimapa del recorrido")}>
       <div className="minimapa__marco">
-        <MapaTeselas capas={capas} encuadre={encuadre} etiqueta="Minimapa con el recorrido completo y la posición del astronauta">
+        <MapaTeselas capas={capas} encuadre={encuadre} etiqueta={tr("Minimapa con el recorrido completo y la posición del astronauta")}>
           {(proyectar) => {
             const pts = (lista) => lista.map((p) => proyectar(p.lon, p.lat).map((n) => n.toFixed(1)).join(',')).join(' ')
             const hecho = lectura.rastro
@@ -35,10 +36,10 @@ export function Minimapa({ capas, camino, rutasSalidas, paradas, aterrizaje, lec
             )
           }}
         </MapaTeselas>
-        <span className="minimapa__norte" aria-hidden="true">N ↑</span>
+        <span className="minimapa__norte" aria-hidden="true">{tr("N ↑")}</span>
       </div>
       <div className="minimapa__pie">
-        <span className="etiqueta">Posición</span>
+        <span className="etiqueta">{tr("Posición")}</span>
         <span className="mono">{formatearCoords(lectura.posicion)}</span>
       </div>
     </section>

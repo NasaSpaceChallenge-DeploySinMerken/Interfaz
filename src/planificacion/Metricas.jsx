@@ -1,3 +1,4 @@
+import { tr } from '../idioma'
 // Métricas de la ruta calculada.
 //
 // Según la fuente (resultado.fuente):
@@ -26,7 +27,7 @@ const duracion = (min) => `${Math.floor(min / 60)} h ${String(Math.round(min % 6
 function Metrica({ nombre, valor, detalle, vacio, ancha = false }) {
   return (
     <div className={`metrica ${ancha ? 'metrica--ancha' : ''}`}>
-      <span className="metrica__nombre">{nombre}</span>
+      <span className="metrica__nombre">{tr(nombre)}</span>
       {valor == null
         ? <span className="metrica__valor metrica__valor--pendiente">{vacio}</span>
         : <span className="metrica__valor">{valor}</span>}
@@ -37,14 +38,14 @@ function Metrica({ nombre, valor, detalle, vacio, ancha = false }) {
 
 export function Metricas({ resultado, nombres }) {
   const { metricas: m, tramos, estadoAnalisis, fuente, inalcanzables = [], advertencia } = resultado
-  const estado = ESTADO[estadoAnalisis]
+  const estado = tr(ESTADO[estadoAnalisis])
   // si el análisis ya llegó y un dato falta, es que ese backend no lo entrega
-  const vacio = estadoAnalisis === 'analyzed' ? 'No disponible' : 'Pendiente del análisis'
+  const vacio = estadoAnalisis === 'analyzed' ? tr('No disponible') : tr('Pendiente del análisis')
   const hayElevacion = m.elevacionMinM != null
   const hayDesnivel = tramos.some((t) => t.desnivelM != null)
   const pendiente = m.pendienteMaxGrados != null
     ? `${m.pendienteMaxGrados}°`
-    : m.limitePendienteGrados != null ? `menos de ${m.limitePendienteGrados}°` : null
+    : m.limitePendienteGrados != null ? `${tr('menos de')} ${m.limitePendienteGrados}°` : null
 
   return (
     <>
@@ -52,9 +53,9 @@ export function Metricas({ resultado, nombres }) {
 
       {inalcanzables.length > 0 && (
         <div className="aviso-ruta" role="alert">
-          <strong>No se puede llegar a:</strong>
+          <strong>{tr("No se puede llegar a:")}</strong>
           <ul>
-            {inalcanzables.map((v) => <li key={v.id}>{nombres[v.id] ?? v.id}: {v.motivo}</li>)}
+            {inalcanzables.map((v) => <li key={v.id}>{nombres[v.id] ?? v.id}: {tr(v.motivo)}</li>)}
           </ul>
         </div>
       )}
@@ -65,25 +66,25 @@ export function Metricas({ resultado, nombres }) {
         <Metrica
           nombre="Oxígeno necesario"
           valor={m.oxigenoPct != null ? `${m.oxigenoPct} %` : null}
-          detalle={[m.oxigenoDetalle, m.oxigenoAlcanza === false ? 'sin reserva suficiente' : null].filter(Boolean).join(' · ') || null}
+          detalle={[m.oxigenoDetalle, m.oxigenoAlcanza === false ? tr('sin reserva suficiente') : null].filter(Boolean).join(' · ') || null}
           vacio={vacio}
         />
         {m.salidas != null
-          ? <Metrica nombre="Salidas" valor={`${m.salidas}`} detalle={m.salidas > 1 ? `vuelve al aterrizaje a recargar oxígeno${m.recargas ? ` (${m.recargas} ${m.recargas === 1 ? 'recarga' : 'recargas'})` : ''}` : 'una sola caminata'} vacio={vacio} />
-          : <Metrica nombre="Esfuerzo" valor={m.esfuerzo != null ? (ESFUERZO[m.esfuerzo] ?? m.esfuerzo) : null} vacio={vacio} />}
+          ? <Metrica nombre="Salidas" valor={`${m.salidas}`} detalle={m.salidas > 1 ? `${tr('vuelve al aterrizaje a recargar oxígeno')}${m.recargas ? ` (${m.recargas} ${m.recargas === 1 ? tr('recarga') : tr('recargas')})` : ''}` : tr('una sola caminata')} vacio={vacio} />
+          : <Metrica nombre="Esfuerzo" valor={m.esfuerzo != null ? tr(ESFUERZO[m.esfuerzo] ?? m.esfuerzo) : null} vacio={vacio} />}
         <Metrica nombre="Pendiente máxima" valor={pendiente} vacio={vacio} ancha={!hayElevacion} />
         {hayElevacion && <Metrica nombre="Elevación" valor={`${m.elevacionMinM} a ${m.elevacionMaxM} m`} vacio={vacio} />}
       </div>
 
       <table className="tramos">
-        <caption>Por tramo</caption>
+        <caption>{tr("Por tramo")}</caption>
         <thead>
           <tr>
-            <th scope="col">Tramo</th>
-            <th scope="col" className="num">Distancia</th>
+            <th scope="col">{tr("Tramo")}</th>
+            <th scope="col" className="num">{tr("Distancia")}</th>
             {hayDesnivel
-              ? <th scope="col" className="num">Desnivel</th>
-              : <><th scope="col" className="num">Tiempo</th><th scope="col" className="num">O₂</th></>}
+              ? <th scope="col" className="num">{tr("Desnivel")}</th>
+              : <><th scope="col" className="num">{tr("Tiempo")}</th><th scope="col" className="num">{tr("O₂")}</th></>}
           </tr>
         </thead>
         <tbody>
@@ -93,22 +94,22 @@ export function Metricas({ resultado, nombres }) {
                 {m.salidas > 1 && t.salida != null && (
                   <span className="tramos__salida" style={{ color: colorSalida(t.salida) }}>
                     <span className="tramos__punto" style={{ background: colorSalida(t.salida) }} aria-hidden="true" />
-                    Salida {t.salida + 1}
+                    {tr("Salida")} {t.salida + 1}
                   </span>
                 )}
                 {i + 1}. {nombres[t.desde] ?? t.desde} → {nombres[t.hasta] ?? t.hasta}
               </td>
               <td className="num">{km(t.distanciaM)}</td>
               {hayDesnivel
-                ? <td className="num">{t.desnivelM > 0 ? '+' : ''}{t.desnivelM} m</td>
-                : <><td className="num">{t.duracionMin ?? '—'} min</td><td className="num">{t.oxigenoPct ?? '—'} %</td></>}
+                ? <td className="num">{t.desnivelM > 0 ? '+' : ''}{t.desnivelM} {tr("m")}</td>
+                : <><td className="num">{t.duracionMin ?? '—'} {tr("min")}</td><td className="num">{t.oxigenoPct ?? '—'} %</td></>}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {advertencia && <p className="nota nota--aviso">{advertencia}</p>}
-      <p className="nota">{NOTA[fuente] ?? NOTA.mock}</p>
+      {advertencia && <p className="nota nota--aviso">{tr(advertencia)}</p>}
+      <p className="nota">{tr(NOTA[fuente] ?? NOTA.mock)}</p>
     </>
   )
 }
