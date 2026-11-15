@@ -294,6 +294,14 @@ function Caminata({ estado, enviar, conectado, espectador, direccionPantalla }) 
 
         <Joystick deshabilitado={!conectado} onCambio={(dir) => { direccionPantalla.current = dir }} />
         <p className="control__ayuda">Arrastra el círculo para caminar (también WASD, flechas o un joystick conectado). Al moverte, la demo pasa a modo manual.</p>
+
+        <section className="control__simulacion" aria-labelledby="t-simulacion">
+          <h2 id="t-simulacion" className="control__subtitulo">Simular signos vitales</h2>
+          {estado.signos?.escenario === 'media'
+            ? <button type="button" className="boton" onClick={() => enviar({ tipo: 'escenario', escenario: 'normal' })} disabled={!conectado}>Volver a la normalidad</button>
+            : <button type="button" className="boton boton--alerta" onClick={() => enviar({ tipo: 'escenario', escenario: 'media' })} disabled={!conectado}>Emergencia media</button>}
+          <p className="control__ayuda">Sube el pulso y la temperatura y baja la saturación hasta nivel de aviso en unos 20 s. Son datos simulados, no del traje.</p>
+        </section>
       </div>
 
       {conectado && (
@@ -307,6 +315,9 @@ function Caminata({ estado, enviar, conectado, espectador, direccionPantalla }) 
               <div><dt>Oxígeno en el tanque</dt><dd className="mono">{Math.round(estado.monitoreo.oxigenoRestanteG ?? 0)} g · {Math.round(estado.monitoreo.oxigenoPct ?? 0)} %</dd></div>
               <div><dt>Oxígeno para volver</dt><dd className="mono">{Math.round(estado.monitoreo.costoRegresoG ?? 0)} g</dd></div>
             </>
+          )}
+          {estado.signos && (
+            <div><dt>Signos vitales (simulados)</dt><dd className="mono">{estado.signos.pulso} lpm · {estado.signos.temperatura.toFixed(1)} °C · {estado.signos.saturacion.toFixed(0)} %</dd></div>
           )}
           {estado.metricasViaje && (
             <div><dt>Tiempo para terminar</dt><dd className="mono">{estado.metricasViaje.tiempoMin} min</dd></div>

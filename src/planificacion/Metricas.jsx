@@ -10,14 +10,14 @@ import { colorSalida } from '../mapa/colores'
 
 const ESFUERZO = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto' }
 const ESTADO = {
-  validated: 'Ruta validada. Esperando el análisis del equipo 3…',
-  forwarded: 'Ruta enviada al equipo 3. Esperando el análisis…',
+  validated: 'Ruta validada. Analizando el terreno…',
+  forwarded: 'Analizando el terreno…',
   analyzed: null,
 }
 const NOTA = {
-  plan: 'Ruta calculada por la API del mapa con el análisis del terreno del equipo 3: sigue el terreno y elige el orden de las visitas. El oxígeno es una estimación exploratoria.',
-  mapa: 'Ruta validada por la API del equipo del mapa. Tramos en línea recta entre tus puntos.',
-  mock: 'Backend falso: tramos en línea recta y valores de ejemplo. El backend real calcula la ruta según el terreno.',
+  plan: 'Ruta calculada según el terreno: sigue el relieve y elige el mejor orden para las visitas. El consumo de oxígeno es una estimación.',
+  mapa: 'Ruta validada. Tramos en línea recta entre tus puntos.',
+  mock: 'Datos de ejemplo, sin conexión al servidor: tramos en línea recta y valores aproximados.',
 }
 
 const km = (m) => `${(m / 1000).toFixed(2)} km`

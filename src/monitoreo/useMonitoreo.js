@@ -5,8 +5,13 @@
 //   joystick conectado (Gamepad API) o de la cruceta en pantalla.
 // - Cada 1 s real manda el tiempo de misión y la posición al monitoreo
 //   (POST /api/monitoreo, con el idRuta de /plan) y guarda lo que responde:
-//   oxígeno, costo de volver y alertas. No hay sensores simulados: todo eso lo
-//   calcula el backend. Si el backend ya no tiene la ruta, hay que volver a planificar.
+//   oxígeno, costo de volver y alertas. Todo eso lo calcula el backend. Si el
+//   backend ya no tiene la ruta, hay que volver a planificar.
+// - Signos vitales (pulso, temperatura, saturación): son SIMULADOS
+//   (signosVitales.js), para mostrar las alertas fisiológicas mientras el backend
+//   no recibe sensores. Se mandan igual en `sensores`, y sus alertas se suman a
+//   las del backend marcadas como simuladas. El teléfono puede lanzar una
+//   "emergencia media" ({ tipo: 'escenario', escenario: 'media' | 'normal' }).
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { enviarMonitoreo, obtenerMetricasViaje } from '../api/cliente'
@@ -15,10 +20,12 @@ import { abrirCanal } from '../control/canal'
 import { admitir, pilotoActual } from '../control/piloto'
 import { CODIGO_SESION } from '../control/sesion'
 import { crearSensoresSimulados } from './sensoresSimulados'
+import { alertasVitales, crearSignosVitales } from './signosVitales'
 
 const ESPERA_CONTROL_MS = 3000 // sin noticias del control remoto en este tiempo = desconectado
 const CADA_METRICAS_MS = 3000 // cada cuánto se revisa si hay que pedir métricas de viaje
 const MOVIMIENTO_MINIMO_M = 15 // se piden de nuevo solo si el astronauta se movió esto
+const CADA_VITALES_MS = 500 // cada cuánto se actualizan los signos vitales simulados
 
 
 const TECLAS = {
@@ -51,7 +58,13 @@ export function useMonitoreo(viaje, onSalir) {
   const [enMarcha, setEnMarcha] = useState(false)
   const [velocidad, setVelocidad] = useState(60)
   const [modo, setModo] = useState('auto')
-  const [alertas, setAlertas] = useState([])
+  const [alertasBackend, setAlertas] = useState([])
+  const vitales = useMemo(() => crearSignosVitales(), [viaje])
+  const [signos, setSignos] = useState(() => vitales.leer())
+  const signosRef = useRef(signos)
+  signosRef.current = signos
+  // alertas del backend + las de los signos vitales (simuladas)
+  const alertas = useMemo(() => [...alertasBackend, ...alertasVitales(signos)], [alertasBackend, signos])
   const [monitoreo, setMonitoreo] = useState(null) // última respuesta de /api/monitoreo
   const [errorMonitoreo, setErrorMonitoreo] = useState(null)
   const [rutaPerdida, setRutaPerdida] = useState(false)
@@ -91,6 +104,7 @@ export function useMonitoreo(viaje, onSalir) {
       }
       if (msg.tipo === 'modo') cambiarModo(msg.modo)
       if (msg.tipo === 'velocidad') setVelocidad(msg.valor)
+      if (msg.tipo === 'escenario') acciones.escenario(msg.escenario)
       if (msg.tipo === 'accion' && ['iniciar', 'pausar', 'reiniciar'].includes(msg.accion)) acciones[msg.accion]()
       if (msg.tipo === 'accion' && msg.accion === 'salir') onSalir?.()
     })
@@ -114,6 +128,7 @@ export function useMonitoreo(viaje, onSalir) {
         alertas: alertasRef.current,
         metricasViaje: metricasRef.current,
         monitoreo: monitoreoRef.current,
+        signos: signosRef.current,
         t: l.t,
         piloto: pilotoActual(),
       })
@@ -225,7 +240,11 @@ export function useMonitoreo(viaje, onSalir) {
       enCurso = true
       const l = sensores.leer()
       try {
-        const r = await enviarMonitoreo({ idRuta: idMonitoreo, t: l.t, posicion: l.posicion, reiniciar: reinicioPendiente.current })
+        const s = signosRef.current
+        const r = await enviarMonitoreo({
+          idRuta: idMonitoreo, t: l.t, posicion: l.posicion, reiniciar: reinicioPendiente.current,
+          sensores: { pulso: s.pulso, temperatura: s.temperatura, saturacionO2: s.saturacion, simulado: true },
+        })
         if (!activo) return
         reinicioPendiente.current = false
         setMonitoreo(r)
@@ -248,6 +267,24 @@ export function useMonitoreo(viaje, onSalir) {
     return () => { activo = false; clearInterval(id) }
   }, [enMarcha, sensores, idMonitoreo, rutaPerdida, reinicios])
 
+  // signos vitales simulados: corren en tiempo real (también en pausa: el
+  // astronauta sigue respirando), con el esfuerzo según la pendiente del tramo
+  const pendienteRef = useRef(0)
+  pendienteRef.current = metricasViaje?.tramoActual?.pendienteMaxPct ?? 0
+  useEffect(() => {
+    let antes = performance.now()
+    const id = setInterval(() => {
+      const ahora = performance.now()
+      vitales.avanzar((ahora - antes) / 1000, {
+        caminando: enMarchaRef.current && !monitoreoRef.current?.parado,
+        pendientePct: pendienteRef.current,
+      })
+      antes = ahora
+      setSignos(vitales.leer())
+    }, CADA_VITALES_MS)
+    return () => clearInterval(id)
+  }, [vitales])
+
   const acciones = {
     iniciar: () => {
       if (sensores.leer().terminado) {
@@ -264,6 +301,8 @@ export function useMonitoreo(viaje, onSalir) {
     // la caminata vuelve a t = 0: el monitoreo la toma como una caminata nueva
     reiniciar: () => {
       sensores.reiniciar()
+      vitales.reiniciar()
+      setSignos(vitales.leer())
       reinicioPendiente.current = true
       setLectura(sensores.leer())
       setAlertas([])
@@ -272,13 +311,18 @@ export function useMonitoreo(viaje, onSalir) {
       setReinicios((n) => n + 1)
     },
     cambiarVelocidad: setVelocidad,
+    // 'media' (emergencia media, simulada) o 'normal'
+    escenario: (nombre) => {
+      vitales.cambiarEscenario(nombre)
+      setSignos(vitales.leer())
+    },
     cambiarModo,
     // cruceta en pantalla: { x, y } mientras se mantiene apretada, null al soltar
     moverPad: (direccion) => { pad.current = direccion },
   }
 
   return {
-    lectura, sensores, alertas, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
+    lectura, sensores, alertas, signos, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
     enMarcha, velocidad, modo, controlRemoto, codigoSesion: CODIGO_SESION, acciones,
   }
 }

@@ -219,16 +219,32 @@ La traducción de su respuesta está en `src/api/cliente.js` (`obtenerMetricasVi
 
 ### Monitoreo en tiempo real (Ingrid)
 
-El monitoreo está en el servicio de análisis (rama `ingrid-consumo-tiempo-real` de martian-map, `POST /api/monitoreo`; contrato en su `docs/API.md`). **Durante la caminata no hay datos simulados**: la interfaz solo mueve al astronauta (no hay traje real) y todo lo demás lo calcula el backend.
+El monitoreo está en el servicio de análisis (rama `ingrid-consumo-tiempo-real` de martian-map, `POST /api/monitoreo`; contrato en su `docs/API.md`). El oxígeno, la ruta y sus alertas vienen solo del backend: la interfaz mueve al astronauta (no hay traje real). **La única excepción son los signos vitales**, que se simulan y se muestran marcados como "Simulado" (ver más abajo).
 
 1. `/plan` (por el backend 1) devuelve un `idRuta`. Si viene en `null` (la ruta no vuelve al aterrizaje), la caminata se puede hacer pero no se monitorea, y el HUD lo indica.
-2. Cada segundo, la interfaz manda `{ idRuta, t, posicion }`, donde `t` son los segundos de misión. "Reiniciar" vuelve a `t = 0`, que el backend toma como una caminata nueva.
-3. Con lo que responde, el HUD muestra el panel **"Oxígeno · monitoreo"** (oxígeno en el tanque, oxígeno para volver, reserva, desvío de la ruta) y **solo las alertas que manda el backend**.
+2. Cada segundo, la interfaz manda `{ idRuta, t, posicion, sensores }`, donde `t` son los segundos de misión. "Reiniciar" vuelve a `t = 0`, que el backend toma como una caminata nueva.
+3. Con lo que responde, el HUD muestra el panel **"Oxígeno"** (oxígeno en el tanque, oxígeno para volver, reserva, desvío de la ruta) y las alertas que manda el backend.
 4. Si el backend se reinicia y pierde la ruta (`404`), aparece el aviso con el botón **"Volver a planificar"**.
 
-El panel **"Lo que falta · backend 2"** sigue saliendo de `/gale/analyze` (distancia, tiempo y pendiente de lo que queda). El oxígeno se toma solo del monitoreo, para no mostrar dos cifras distintas.
+El panel **"Lo que falta"** sigue saliendo de `/gale/analyze` (distancia, tiempo y pendiente de lo que queda). El oxígeno se toma solo del monitoreo, para no mostrar dos cifras distintas.
 
 Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. En Google Cloud apunta al proxy privado del backend de capas. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
+
+### Signos vitales simulados y "Emergencia media"
+
+El backend acepta `sensores` pero todavía no los usa (fase 2). Para mostrar en la demo las alertas fisiológicas, la interfaz **simula** pulso, temperatura del cuerpo y saturación de O₂ ([src/monitoreo/signosVitales.js](src/monitoreo/signosVitales.js)). Todo lo simulado lleva la etiqueta **"Simulado"**: la tarjeta "Signos vitales" del HUD y sus alertas.
+
+- **Pulso desde el esfuerzo** (estudio de la NASA, 132 EVA de Shuttle e ISS): pulso = metabolismo (BTU/h) ÷ (0,142 BTU por latido × 60). Caminando en plano se usa el metabolismo promedio de una EVA (253 W → ~101 latidos/min), que sube 3 W por cada 1 % de pendiente del tramo; en reposo, 160 W. Tope de 185 latidos/min, porque la relación viene de la ISS y no sirve a metabolismos muy altos.
+- **"Emergencia media"**: botón en el control del teléfono (solo el piloto). En unos 20 s, el pulso sube a ~152, la temperatura a ~38,4 °C y la saturación baja a ~92,5 %: las tres alertas saltan en nivel de aviso. "Volver a la normalidad" lo deshace. Corre en tiempo real (la velocidad x60 no lo acelera) y también en pausa.
+- Los valores se mandan en `sensores` (`pulso`, `temperatura`, `saturacionO2`, `simulado: true`), para cuando el backend los evalúe.
+
+Umbrales (supuestos del proyecto: la NASA no los define):
+
+| Sensor | Normal | Aviso | Crítico |
+|---|---|---|---|
+| Pulso (latidos/min) | 86–120 (103 ± 17 del estudio) | > 140 | > 160 |
+| Temperatura del cuerpo | 36,0–37,5 °C | ≥ 38 o ≤ 35,5 °C | ≥ 39 o ≤ 35 °C |
+| Saturación de O₂ | ≥ 95 % | < 94 % | < 90 % |
 
 ## Estructura
 
@@ -254,6 +270,7 @@ src/
     Monitoreo.jsx             HUD completo
     useMonitoreo.js           avanza la simulación y manda sensores cada 1 s
     sensoresSimulados.js      movimiento del astronauta (no simula sensores)
+    signosVitales.js          signos vitales SIMULADOS (pulso, temperatura, saturación) y sus alertas
     useAlertas.js, Alertas.jsx
     BarraSuperior.jsx, Brujula.jsx, Minimapa.jsx
     Cruceta.jsx               control manual en pantalla

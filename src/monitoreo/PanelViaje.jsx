@@ -7,6 +7,7 @@
 import { formatearDistancia } from '../mapa/geo'
 import { colorSalida } from '../mapa/colores'
 import { Tarjeta } from './Tarjeta'
+import { UMBRALES } from './signosVitales'
 
 const duracion = (min) => (min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min` : `${min} min`)
 const gramos = (g) => (g == null ? '—' : `${Math.round(g)} g`)
@@ -31,9 +32,9 @@ export function PanelOxigeno({ monitoreo, error }) {
       : '…'
 
   return (
-    <Tarjeta etiqueta="Oxígeno · monitoreo" resumen={resumen} alerta={!alcanza || Boolean(error)} className="viaje" ariaLabel="Oxígeno">
+    <Tarjeta etiqueta="Oxígeno" resumen={resumen} alerta={!alcanza || Boolean(error)} className="viaje" ariaLabel="Oxígeno">
       {error && <p className="viaje__error">{error}</p>}
-      {!monitoreo && !error && <p className="viaje__ayuda">Esperando el monitoreo…</p>}
+      {!monitoreo && !error && <p className="viaje__ayuda">Esperando datos…</p>}
       {monitoreo && (
         <>
           <Fila nombre="En el tanque" valor={`${gramos(monitoreo.oxigenoRestanteG)}${monitoreo.oxigenoPct != null ? ` · ${Math.round(monitoreo.oxigenoPct)} %` : ''}`} />
@@ -53,7 +54,7 @@ export function PanelViaje({ metricas, error, salida, salidas }) {
   const etiqueta = (
     <>
       {salidas > 1 && <span className="tramos__punto" style={{ background: colorSalida(salida - 1) }} aria-hidden="true" />}
-      Lo que falta<span className="tarjeta__extra">{salidas > 1 ? ` de la salida ${salida} de ${salidas}` : ''} · backend 2</span>
+      Lo que falta<span className="tarjeta__extra">{salidas > 1 ? ` de la salida ${salida} de ${salidas}` : ''}</span>
     </>
   )
   const resumen = error ? 'sin datos' : metricas ? `${formatearDistancia(metricas.restanteM)} · ${duracion(metricas.tiempoMin)}` : '…'
@@ -74,6 +75,28 @@ export function PanelViaje({ metricas, error, salida, salidas }) {
           )}
         </>
       )}
+    </Tarjeta>
+  )
+}
+
+// Signos vitales SIMULADOS (signosVitales.js): siempre con la etiqueta "Simulado".
+export function PanelVitales({ signos }) {
+  const u = UMBRALES
+  const nivelPulso = signos.pulso > u.pulso.critico ? 'critico' : signos.pulso > u.pulso.aviso ? 'aviso' : ''
+  const nivelTemp = signos.temperatura >= u.temperaturaAlta.critico || signos.temperatura <= u.temperaturaBaja.critico
+    ? 'critico'
+    : signos.temperatura >= u.temperaturaAlta.aviso || signos.temperatura <= u.temperaturaBaja.aviso ? 'aviso' : ''
+  const nivelSat = signos.saturacion < u.saturacion.critico ? 'critico' : signos.saturacion < u.saturacion.aviso ? 'aviso' : ''
+  const clase = (nivel) => (nivel ? `vital--${nivel}` : '')
+  const etiqueta = <><span className="solo-grande">Signos vitales</span><span className="solo-telefono">Vitales</span><span className="simulado">Simulado</span></>
+  // en teléfono, el resumen cerrado deja fuera la saturación para que quepa la etiqueta
+  const resumen = <>{signos.pulso} lpm · {signos.temperatura.toFixed(1)} °C<span className="tarjeta__extra"> · {signos.saturacion.toFixed(0)} %</span></>
+
+  return (
+    <Tarjeta etiqueta={etiqueta} resumen={resumen} alerta={Boolean(nivelPulso || nivelTemp || nivelSat)} className="viaje" ariaLabel="Signos vitales (simulados)">
+      <Fila nombre="Pulso" valor={`${signos.pulso} lpm`} clase={clase(nivelPulso)} />
+      <Fila nombre="Temperatura" valor={`${signos.temperatura.toFixed(1)} °C`} clase={clase(nivelTemp)} />
+      <Fila nombre="Saturación de O₂" valor={`${signos.saturacion.toFixed(1)} %`} clase={clase(nivelSat)} />
     </Tarjeta>
   )
 }

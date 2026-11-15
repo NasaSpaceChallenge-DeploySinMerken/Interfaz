@@ -1,0 +1,101 @@
+// Signos vitales SIMULADOS del astronauta: pulso, temperatura del cuerpo y
+// saturación de oxígeno.
+//
+// Es la única parte simulada del monitoreo (el oxígeno del tanque, el costo de
+// volver y sus alertas vienen del backend). Existe para mostrar en la demo cómo
+// se verían las alertas fisiológicas mientras el backend no recibe sensores
+// (fase 2). Todo lo que sale de aquí va marcado como simulado en la pantalla.
+//
+// Base (estudio de la NASA de 132 EVA de Shuttle e ISS, no de un traje para Marte):
+// - Metabolismo promedio de una EVA: 863 BTU/h (unos 253 W).
+// - Relación metabolismo/pulso: 0,142 BTU por latido → pulso = BTU/h ÷ (0,142 × 60).
+//   Con 253 W da unos 101 latidos/min (el estudio: 103 ± 17).
+// - La relación viene de caminatas en la ISS: a metabolismos altos deja de servir,
+//   por eso el pulso tiene un tope.
+// Supuestos del proyecto (la NASA no los define):
+// - El metabolismo sube con la pendiente del tramo (3 W por cada 1 %) y baja en reposo.
+// - Umbrales de alerta (tabla UMBRALES), de criterio clínico general.
+//
+// Escenarios: 'normal' (los valores siguen al esfuerzo) y 'media' (emergencia
+// media: los tres signos suben hasta nivel de aviso en unos 20 s). Corren en
+// tiempo real, no en el de la simulación: la velocidad x60 no los acelera.
+
+const W_A_BTU_H = 3.412
+const BTU_POR_LATIDO = 0.142
+const METABOLISMO_CAMINANDO_W = 253
+const METABOLISMO_REPOSO_W = 160
+const W_POR_PENDIENTE_PCT = 3
+const METABOLISMO_MAX_W = 530 // pico de diseño del proyecto
+const PULSO_MAX = 185
+
+const NORMAL = { temperatura: 36.8, saturacion: 97.5 }
+
+// emergencia media: los tres signos en nivel de aviso, sin llegar a crítico
+const ESCENARIOS = {
+  normal: null,
+  media: { pulso: 152, temperatura: 38.4, saturacion: 92.5 },
+}
+
+// segundos que tarda cada signo en recorrer ~63 % del camino hacia su objetivo
+const TAU = { pulso: 5, temperatura: 6, saturacion: 5 }
+
+export const UMBRALES = {
+  pulso: { aviso: 140, critico: 160 }, // latidos/min, por arriba
+  temperaturaAlta: { aviso: 38, critico: 39 }, // °C, por arriba
+  temperaturaBaja: { aviso: 35.5, critico: 35 }, // °C, por abajo
+  saturacion: { aviso: 94, critico: 90 }, // %, por abajo
+}
+
+const pulsoDesdeMetabolismo = (w) => Math.min(PULSO_MAX, (w * W_A_BTU_H) / (BTU_POR_LATIDO * 60))
+
+export function crearSignosVitales() {
+  let escenario = 'normal'
+  let v = { pulso: pulsoDesdeMetabolismo(METABOLISMO_REPOSO_W), ...NORMAL }
+
+  return {
+    leer: () => ({
+      pulso: Math.round(v.pulso),
+      temperatura: Math.round(v.temperatura * 10) / 10,
+      saturacion: Math.round(v.saturacion * 10) / 10,
+      escenario,
+    }),
+    get escenario() { return escenario },
+    cambiarEscenario(nuevo) {
+      if (nuevo in ESCENARIOS) escenario = nuevo
+    },
+    // dt en segundos reales; caminando: si el astronauta se está moviendo;
+    // pendientePct: pendiente del tramo actual (del análisis del terreno)
+    avanzar(dt, { caminando, pendientePct = 0 }) {
+      const metabolismo = caminando
+        ? Math.min(METABOLISMO_MAX_W, METABOLISMO_CAMINANDO_W + W_POR_PENDIENTE_PCT * Math.max(0, pendientePct))
+        : METABOLISMO_REPOSO_W
+      const objetivo = ESCENARIOS[escenario] ?? { pulso: pulsoDesdeMetabolismo(metabolismo), ...NORMAL }
+      const siguiente = {}
+      for (const k of Object.keys(TAU)) siguiente[k] = v[k] + (objetivo[k] - v[k]) * (1 - Math.exp(-dt / TAU[k]))
+      siguiente.pulso += (Math.random() - 0.5) * 1.5 // variación natural, latido a latido
+      v = siguiente
+    },
+    reiniciar() {
+      escenario = 'normal'
+      v = { pulso: pulsoDesdeMetabolismo(METABOLISMO_REPOSO_W), ...NORMAL }
+    },
+  }
+}
+
+// Alertas de los signos vitales, con id fijo por sensor (como las del backend)
+// y marcadas como simuladas.
+export function alertasVitales(s) {
+  if (!s) return []
+  const alertas = []
+  const agregar = (id, nivel, mensaje) => alertas.push({ id, nivel, mensaje, simulado: true })
+  const u = UMBRALES
+  if (s.pulso > u.pulso.critico) agregar('vital-pulso', 'critico', `Pulso muy alto: ${s.pulso} latidos/min`)
+  else if (s.pulso > u.pulso.aviso) agregar('vital-pulso', 'aviso', `Sobreesfuerzo: pulso de ${s.pulso} latidos/min`)
+  if (s.temperatura >= u.temperaturaAlta.critico) agregar('vital-temperatura', 'critico', `Temperatura corporal muy alta: ${s.temperatura.toFixed(1)} °C`)
+  else if (s.temperatura >= u.temperaturaAlta.aviso) agregar('vital-temperatura', 'aviso', `Temperatura corporal alta: ${s.temperatura.toFixed(1)} °C`)
+  else if (s.temperatura <= u.temperaturaBaja.critico) agregar('vital-temperatura', 'critico', `Temperatura corporal muy baja: ${s.temperatura.toFixed(1)} °C`)
+  else if (s.temperatura <= u.temperaturaBaja.aviso) agregar('vital-temperatura', 'aviso', `Temperatura corporal baja: ${s.temperatura.toFixed(1)} °C`)
+  if (s.saturacion < u.saturacion.critico) agregar('vital-saturacion', 'critico', `Saturación de oxígeno muy baja: ${s.saturacion.toFixed(1)} %`)
+  else if (s.saturacion < u.saturacion.aviso) agregar('vital-saturacion', 'aviso', `Saturación de oxígeno baja: ${s.saturacion.toFixed(1)} %`)
+  return alertas
+}

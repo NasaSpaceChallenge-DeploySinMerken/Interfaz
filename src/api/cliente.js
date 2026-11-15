@@ -74,9 +74,9 @@ async function pedir(base, ruta, opciones = {}) {
     })
   } catch (e) {
     if (e?.name === 'TimeoutError') {
-      throw new Error(`El backend (${base}) no respondió en ${ESPERA_MAXIMA_MS / 1000} s.`)
+      throw new Error(`El servidor (${base}) no respondió en ${ESPERA_MAXIMA_MS / 1000} s.`)
     }
-    throw new Error(`No se pudo conectar con el backend (${base}). Revisa que esté corriendo y que tu red no lo bloquee.`)
+    throw new Error(`No se pudo conectar con el servidor (${base}). Revisa tu conexión.`)
   }
   let cuerpo = null
   try {
@@ -86,7 +86,7 @@ async function pedir(base, ruta, opciones = {}) {
   }
   if (!respuesta.ok || cuerpo?.ok === false) {
     const primero = cuerpo?.errors?.[0]
-    const error = new Error(primero?.message ?? cuerpo?.error ?? `El backend respondió ${respuesta.status}`)
+    const error = new Error(primero?.message ?? cuerpo?.error ?? `El servidor respondió ${respuesta.status}`)
     error.status = respuesta.status
     error.codigo = primero?.code
     error.indices = primero?.points ?? []
@@ -344,7 +344,7 @@ export async function obtenerMetricasViaje({ posicion, pendientes }) {
     return distanciaKm(aPar(anterior), aPar(p)) * 1000 > 2
   })
   if (!destinos.length) return null
-  if (ANALISIS == null) throw new Error('El backend 2 (análisis) no está configurado.')
+  if (ANALISIS == null) throw new Error('El análisis del terreno no está configurado.')
   const r = await pedir(ANALISIS, '/gale/analyze', {
     method: 'POST',
     body: JSON.stringify({
@@ -357,20 +357,21 @@ export async function obtenerMetricasViaje({ posicion, pendientes }) {
 
 // Fase 2: monitoreo en tiempo real (POST /api/monitoreo). Se llama cada segundo con
 // el idRuta de /plan, el tiempo de misión y la posición. El backend calcula el
-// oxígeno y las alertas: la interfaz no simula ningún sensor.
+// oxígeno y sus alertas. En `sensores` van los signos vitales, que por ahora son
+// simulados (signosVitales.js); el backend los acepta pero aún no los usa (fase 2).
 // Errores: error.codigo = 'RUTA_DESCONOCIDA' si el backend ya no tiene la ruta
 // (se reinició: hay que volver a planificar).
-export async function enviarMonitoreo({ idRuta, t, posicion, reiniciar = false }) {
+export async function enviarMonitoreo({ idRuta, t, posicion, sensores = {}, reiniciar = false }) {
   if (MONITOREO == null) throw new Error('El monitoreo no está configurado.')
   let r
   try {
     r = await pedir(MONITOREO, '/api/monitoreo', {
       method: 'POST',
-      body: JSON.stringify({ idRuta, t: Math.round(t), posicion, sensores: {}, reiniciar }),
+      body: JSON.stringify({ idRuta, t: Math.round(t), posicion, sensores, reiniciar }),
     })
   } catch (e) {
     if (e.status === 404 && /idruta/i.test(e.message)) e.codigo = 'RUTA_DESCONOCIDA'
-    else if (e.status === 404) e.message = 'El backend no tiene el monitoreo (POST /api/monitoreo).'
+    else if (e.status === 404) e.message = 'El servidor no tiene el monitoreo disponible.'
     throw e
   }
   return {

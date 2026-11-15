@@ -12,7 +12,7 @@ import { Brujula } from './Brujula'
 import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
 import { Cruceta } from './Cruceta'
-import { PanelOxigeno, PanelViaje } from './PanelViaje'
+import { PanelOxigeno, PanelViaje, PanelVitales } from './PanelViaje'
 import { Tarjeta } from './Tarjeta'
 import { colorSalida } from '../mapa/colores'
 import { LeyendaSalidas } from '../planificacion/MapaPlanificacion'
@@ -20,18 +20,18 @@ import { LeyendaSalidas } from '../planificacion/MapaPlanificacion'
 
 export function Monitoreo({ viaje, onSalir }) {
   const {
-    lectura, sensores, alertas: delBackend, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
+    lectura, sensores, alertas: delBackend, signos, monitoreo, errorMonitoreo, rutaPerdida, metricasViaje, errorMetricas,
     enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones,
   } = useMonitoreo(viaje, onSalir)
-  // solo las alertas del monitoreo (backend)
+  // alertas del monitoreo (backend) y de los signos vitales (simuladas)
   const { alertas, cerrar } = useAlertas(delBackend)
   // avisos de la demo (no son alertas del backend)
   const avisos = [
     ...(rutaPerdida ? [{
       id: 'ruta-perdida',
       etiqueta: 'Monitoreo',
-      titulo: 'El backend ya no tiene esta ruta',
-      detalle: 'Se reinició el servicio de monitoreo. Para seguir, hay que volver a planificar el viaje.',
+      titulo: 'Se perdió el seguimiento de esta ruta',
+      detalle: 'El servicio de monitoreo se reinició. Para seguir, vuelve a planificar el viaje.',
       accion: { texto: 'Volver a planificar', onClick: onSalir },
     }] : []),
     ...(lectura.fueraDeZona ? [{
@@ -107,6 +107,7 @@ export function Monitoreo({ viaje, onSalir }) {
             <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
           </Tarjeta>
           <PanelOxigeno monitoreo={monitoreo} error={errorMonitoreo} />
+          <PanelVitales signos={signos} />
           <PanelViaje metricas={metricasViaje} error={errorMetricas} salida={lectura.salida} salidas={lectura.salidas} />
           {rutasSalidas && <LeyendaSalidas cantidad={rutasSalidas.length} className="leyenda-salidas--hud" />}
         </div>

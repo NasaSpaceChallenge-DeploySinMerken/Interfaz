@@ -1,4 +1,5 @@
-// Alertas del monitoreo (backend), estilo notificación de juego.
+// Alertas del monitoreo (backend) y de los signos vitales (simuladas, con la
+// etiqueta "Simulado"), estilo notificación de juego.
 // Arriba van los avisos de la propia demo (no son alertas del backend):
 // el backend perdió la ruta, o el astronauta llegó al borde del tramo.
 
@@ -22,7 +23,7 @@ export function Alertas({ alertas, onCerrar, avisos = [] }) {
       {alertas.map((a) => (
         <li key={a.id} className={`alerta alerta--${a.nivel}`} role={a.nivel === 'critico' ? 'alert' : undefined}>
           <div className="alerta__cuerpo">
-            <span className="alerta__nivel">{ETIQUETAS[a.nivel] ?? a.nivel}</span>
+            <span className="alerta__nivel">{ETIQUETAS[a.nivel] ?? a.nivel}{a.simulado && <span className="simulado">Simulado</span>}</span>
             <span className="alerta__titulo">{a.mensaje}</span>
           </div>
           <button type="button" className="alerta__cerrar" onClick={() => onCerrar(a)} aria-label={`Cerrar alerta: ${a.mensaje}`}>

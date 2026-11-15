@@ -518,8 +518,10 @@ input.punto__nombre:hover { border-color: var(--borde); }
 /* columna derecha a toda la altura: el minimapa se achica según el espacio */
 .lateral { grid-row: 1 / -1; align-self: stretch; min-height: 0; overflow: hidden; gap: 8px; }
 .lateral > .panel { flex: none; }
-.lateral > .minimapa { flex: 1 1 auto; min-height: 0; }
-.minimapa__marco { aspect-ratio: auto; flex: 1 1 auto; min-height: 110px; max-height: 300px; }
+/* el panel del minimapa mide lo que su mapa (hasta 300 px) y se achica si falta
+   espacio; lo que sobra abajo queda transparente, mostrando el mapa grande */
+.lateral > .minimapa { flex: 0 1 auto; min-height: 0; }
+.minimapa__marco { aspect-ratio: auto; flex: 0 1 300px; height: 300px; min-height: 110px; }
 
 /* paneles compactos */
 .objetivo, .viaje { padding: 10px 12px; gap: 2px; }
@@ -741,3 +743,18 @@ input.punto__nombre:hover { border-color: var(--borde); }
 .telefono__qr { flex: none; width: 128px; height: 128px; padding: 6px; border-radius: 8px; background: #fff; }
 .telefono__qr svg { display: block; width: 100%; height: 100%; }
 .telefono__qr-fila .telefono__direccion { font-size: 13px; }
+
+/* =================================================================
+   Signos vitales simulados
+   ================================================================= */
+.simulado {
+  display: inline-block; margin-left: 6px; padding: 1px 5px; border: 1px solid currentColor; border-radius: 4px;
+  font-size: 0.85em; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); opacity: 0.9;
+  vertical-align: 1px;
+}
+.alerta .simulado { color: var(--texto-suave); }
+.vital--aviso { color: var(--aviso); }
+.vital--critico { color: var(--critico); }
+.control__simulacion { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.boton--alerta { border-color: var(--aviso); color: var(--aviso); font-weight: 600; }
+.boton--alerta:hover { background: rgba(242, 193, 78, 0.12); }
