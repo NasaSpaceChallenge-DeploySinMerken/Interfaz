@@ -24,7 +24,7 @@ function CodigoQR({ texto }) {
     return { n, d }
   }, [texto])
   return (
-    <svg viewBox={`0 0 ${n} ${n}`} role="img" aria-label={`Código QR: ${texto}`} shapeRendering="crispEdges">
+    <svg viewBox={`0 0 ${n} ${n}`} role="img" aria-label={`${tr('Código QR:')} ${texto}`} shapeRendering="crispEdges">
       <path d={d} fill="#0d0f12" />
     </svg>
   )

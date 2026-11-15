@@ -147,6 +147,7 @@ const ingles = {
   'preparando el viaje': 'planning the journey', 'caminata en curso': 'walk in progress',
   'Buscando la demo': 'Looking for demo', 'caminando': 'walking', 'en pausa': 'paused',
   'Cerrar alerta:': 'Dismiss alert:',
+  'Código QR:': 'QR code:',
   'El oxígeno no alcanza para volver': 'There is not enough oxygen to return',
   'El oxígeno ya no cubre el margen de regreso ni la reserva': 'Oxygen no longer covers the return margin and reserve',
   'Conviene revisar el oxígeno y la ruta de regreso': 'Check oxygen and the return route',
