@@ -753,8 +753,20 @@ input.punto__nombre:hover { border-color: var(--borde); }
   vertical-align: 1px;
 }
 .alerta .simulado { color: var(--texto-suave); }
+.vital--normal { color: #8fd19e; }
 .vital--aviso { color: var(--aviso); }
 .vital--critico { color: var(--critico); }
 .control__simulacion { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 16px; border-top: 1px solid var(--borde); }
 .boton--alerta { border-color: var(--aviso); color: var(--aviso); font-weight: 600; }
 .boton--alerta:hover { background: rgba(242, 193, 78, 0.12); }
+
+/* Alertas de aviso: fondo ámbar oscuro, borde sólido y contorno oscuro, para que
+   el amarillo no se confunda con el terreno anaranjado del mapa */
+.alerta--aviso {
+  background: rgba(54, 38, 4, 0.94);
+  border: 2px solid var(--aviso);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.alerta--aviso .alerta__nivel { color: #ffd76a; }
+.alerta--aviso .simulado { color: #e9d9b0; }
+.alerta--critico { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.4); }

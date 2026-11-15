@@ -18,7 +18,9 @@ export function useEsTelefono() {
   return es
 }
 
-export function Tarjeta({ etiqueta, resumen, alerta = false, className = '', ariaLabel, children }) {
+// nivel: color del resumen ('normal' verde, 'aviso' amarillo, 'critico' rojo); sin
+// nivel, `alerta` lo pone en rojo
+export function Tarjeta({ etiqueta, resumen, alerta = false, nivel = null, className = '', ariaLabel, children }) {
   const esTelefono = useEsTelefono()
   const [abierta, setAbierta] = useState(false)
   const idDetalle = useId()
@@ -42,7 +44,7 @@ export function Tarjeta({ etiqueta, resumen, alerta = false, className = '', ari
         onClick={() => setAbierta((a) => !a)}
       >
         <span className="etiqueta">{etiqueta}</span>
-        <span className={`tarjeta__resumen mono ${alerta ? 'tarjeta__resumen--alerta' : ''}`}>{resumen}</span>
+        <span className={`tarjeta__resumen mono ${nivel ? `vital--${nivel}` : alerta ? 'tarjeta__resumen--alerta' : ''}`}>{resumen}</span>
         <svg className="tarjeta__flecha" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
           <path d="M3 9 L7 5 L11 9" />
         </svg>

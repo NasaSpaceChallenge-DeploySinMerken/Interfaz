@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { abrirCanal, codigoEnDireccion, ID_CONTROL } from './canal'
 import { formatearCoords, formatearDistancia } from '../mapa/geo'
 import { PlanificacionRemota } from './PlanificacionRemota'
+import { nivelOxigeno } from '../monitoreo/nivelOxigeno'
 
 const ENVIOS_POR_SEGUNDO = 10
 const ESPERA_DEMO_MS = 2000
@@ -312,12 +313,12 @@ function Caminata({ estado, enviar, conectado, espectador, direccionPantalla }) 
           <div><dt>Distancia restante</dt><dd className="mono">{formatearDistancia(estado.restante ?? 0)}</dd></div>
           {estado.monitoreo && (
             <>
-              <div><dt>Oxígeno en el tanque</dt><dd className="mono">{Math.round(estado.monitoreo.oxigenoRestanteG ?? 0)} g · {Math.round(estado.monitoreo.oxigenoPct ?? 0)} %</dd></div>
+              <div><dt>Oxígeno en el tanque</dt><dd className={`mono ${nivelOxigeno(estado.monitoreo) === 'normal' ? '' : `vital--${nivelOxigeno(estado.monitoreo)}`}`}>{Math.round(estado.monitoreo.oxigenoRestanteG ?? 0)} g · {Math.round(estado.monitoreo.oxigenoPct ?? 0)} %</dd></div>
               <div><dt>Oxígeno para volver</dt><dd className="mono">{Math.round(estado.monitoreo.costoRegresoG ?? 0)} g</dd></div>
             </>
           )}
           {estado.signos && (
-            <div><dt>Signos vitales (simulados)</dt><dd className="mono">{estado.signos.pulso} lpm · {estado.signos.temperatura.toFixed(1)} °C · {estado.signos.saturacion.toFixed(0)} %</dd></div>
+            <div><dt>Signos vitales (simulados)</dt><dd className={`mono vital--${estado.alertas?.some((a) => a.simulado && a.nivel === 'critico') ? 'critico' : estado.alertas?.some((a) => a.simulado) ? 'aviso' : 'normal'}`}>{estado.signos.pulso} lpm · {estado.signos.temperatura.toFixed(1)} °C · {estado.signos.saturacion.toFixed(0)} %</dd></div>
           )}
           {estado.metricasViaje && (
             <div><dt>Tiempo para terminar</dt><dd className="mono">{estado.metricasViaje.tiempoMin} min</dd></div>

@@ -8,6 +8,7 @@ import { formatearDistancia } from '../mapa/geo'
 import { colorSalida } from '../mapa/colores'
 import { Tarjeta } from './Tarjeta'
 import { UMBRALES } from './signosVitales'
+import { nivelOxigeno } from './nivelOxigeno'
 
 const duracion = (min) => (min >= 60 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min` : `${min} min`)
 const gramos = (g) => (g == null ? '—' : `${Math.round(g)} g`)
@@ -22,9 +23,9 @@ function Fila({ nombre, valor, clase = '' }) {
 }
 
 export function PanelOxigeno({ monitoreo, error }) {
-  const alcanza = monitoreo && monitoreo.oxigenoRestanteG != null && monitoreo.costoRegresoG != null
-    ? monitoreo.oxigenoRestanteG >= monitoreo.costoRegresoG + (monitoreo.reservaG ?? 0)
-    : true
+  // blanco: todo bien; amarillo: queda poco; rojizo: volver ya usa la reserva
+  const nivel = nivelOxigeno(monitoreo)
+  const color = nivel === 'normal' ? '' : `vital--${nivel}`
   const resumen = error
     ? 'sin datos'
     : monitoreo
@@ -32,13 +33,13 @@ export function PanelOxigeno({ monitoreo, error }) {
       : '…'
 
   return (
-    <Tarjeta etiqueta="Oxígeno" resumen={resumen} alerta={!alcanza || Boolean(error)} className="viaje" ariaLabel="Oxígeno">
+    <Tarjeta etiqueta="Oxígeno" resumen={resumen} nivel={error || nivel === 'normal' ? null : nivel} alerta={Boolean(error)} className="viaje" ariaLabel="Oxígeno">
       {error && <p className="viaje__error">{error}</p>}
       {!monitoreo && !error && <p className="viaje__ayuda">Esperando datos…</p>}
       {monitoreo && (
         <>
-          <Fila nombre="En el tanque" valor={`${gramos(monitoreo.oxigenoRestanteG)}${monitoreo.oxigenoPct != null ? ` · ${Math.round(monitoreo.oxigenoPct)} %` : ''}`} />
-          <Fila nombre="Para volver al aterrizaje" valor={gramos(monitoreo.costoRegresoG)} clase={alcanza ? '' : 'viaje__falta'} />
+          <Fila nombre="En el tanque" valor={`${gramos(monitoreo.oxigenoRestanteG)}${monitoreo.oxigenoPct != null ? ` · ${Math.round(monitoreo.oxigenoPct)} %` : ''}`} clase={color} />
+          <Fila nombre="Para volver al aterrizaje" valor={gramos(monitoreo.costoRegresoG)} clase={nivel === 'critico' ? color : ''} />
           <Fila nombre="Reserva" valor={gramos(monitoreo.reservaG)} />
           {monitoreo.distanciaARutaM != null && monitoreo.distanciaARutaM >= 1 && (
             <Fila nombre="Fuera de la ruta" valor={formatearDistancia(monitoreo.distanciaARutaM)} />
@@ -80,6 +81,7 @@ export function PanelViaje({ metricas, error, salida, salidas }) {
 }
 
 // Signos vitales SIMULADOS (signosVitales.js): siempre con la etiqueta "Simulado".
+// Cada valor en verde (normal), amarillo (aviso) o rojo (crítico).
 export function PanelVitales({ signos }) {
   const u = UMBRALES
   const nivelPulso = signos.pulso > u.pulso.critico ? 'critico' : signos.pulso > u.pulso.aviso ? 'aviso' : ''
@@ -87,13 +89,14 @@ export function PanelVitales({ signos }) {
     ? 'critico'
     : signos.temperatura >= u.temperaturaAlta.aviso || signos.temperatura <= u.temperaturaBaja.aviso ? 'aviso' : ''
   const nivelSat = signos.saturacion < u.saturacion.critico ? 'critico' : signos.saturacion < u.saturacion.aviso ? 'aviso' : ''
-  const clase = (nivel) => (nivel ? `vital--${nivel}` : '')
+  const clase = (nivel) => `vital--${nivel || 'normal'}`
+  const peor = [nivelPulso, nivelTemp, nivelSat].includes('critico') ? 'critico' : [nivelPulso, nivelTemp, nivelSat].includes('aviso') ? 'aviso' : 'normal'
   const etiqueta = <><span className="solo-grande">Signos vitales</span><span className="solo-telefono">Vitales</span><span className="simulado">Simulado</span></>
   // en teléfono, el resumen cerrado deja fuera la saturación para que quepa la etiqueta
   const resumen = <>{signos.pulso} lpm · {signos.temperatura.toFixed(1)} °C<span className="tarjeta__extra"> · {signos.saturacion.toFixed(0)} %</span></>
 
   return (
-    <Tarjeta etiqueta={etiqueta} resumen={resumen} alerta={Boolean(nivelPulso || nivelTemp || nivelSat)} className="viaje" ariaLabel="Signos vitales (simulados)">
+    <Tarjeta etiqueta={etiqueta} resumen={resumen} nivel={peor} className="viaje" ariaLabel="Signos vitales (simulados)">
       <Fila nombre="Pulso" valor={`${signos.pulso} lpm`} clase={clase(nivelPulso)} />
       <Fila nombre="Temperatura" valor={`${signos.temperatura.toFixed(1)} °C`} clase={clase(nivelTemp)} />
       <Fila nombre="Saturación de O₂" valor={`${signos.saturacion.toFixed(1)} %`} clase={clase(nivelSat)} />
