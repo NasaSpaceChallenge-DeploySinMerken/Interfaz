@@ -1,299 +1,217 @@
-# Interfaz — Martian Map
+# Interface — Martian Map
 
-Interfaz del navegador del proyecto [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map). Se arma aquí y, cuando esté lista, se pasa al repo principal.
+Browser interface for [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map). It is developed here and then integrated into the main repository.
 
-- Reparto de tareas: [Division_tareas_interfaz.md](Division_tareas_interfaz.md)
-- Contrato con el backend: [Contrato_API.md](Contrato_API.md)
-- Propuesta para el resto del equipo: [Propuesta_equipo.md](Propuesta_equipo.md)
+- Task assignments: [Division_tareas_interfaz.md](Division_tareas_interfaz.md)
+- Backend contract: [Contrato_API.md](Contrato_API.md)
+- Proposal to the rest of the team: [Propuesta_equipo.md](Propuesta_equipo.md)
 
-**Demo publicada: [https://martian-map.page](https://martian-map.page)** (Google Cloud, con los backends reales). El teléfono se conecta leyendo el **QR** que muestra la demo en la planificación (o abriendo la dirección con su código, `https://martian-map.page/#control=1234`). El botón ⛶ pone la demo en pantalla completa para la presentación.
+**Live demo: [martian-map.page](https://martian-map.page/?lang=en)** (Google Cloud, connected to the real backends). A phone joins by scanning the **QR code** shown during planning or opening the URL with its code, such as `https://martian-map.page/#control=1234`. The ⛶ button puts the demo in full screen for presentations.
 
-El selector **ES / EN** de la esquina superior derecha cambia la interfaz entre español e inglés sin perder el viaje. La elección queda guardada en el navegador; también se puede abrir `https://martian-map.page/?lang=en`. El QR del control incluye el idioma elegido para que el teléfono abra la misma versión.
+The **ES / EN** selector in the upper-right corner changes the interface language without losing the trip. The choice is saved in the browser. You can also open `https://martian-map.page/?lang=en` directly; the phone-control QR code includes the chosen language.
 
-## Cómo correrlo
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre `http://localhost:5173`. Necesita internet: las imágenes del mapa vienen de NASA Mars Trek.
+Open `http://localhost:5173`. An internet connection is needed for the NASA Mars Trek map imagery.
 
-1. **Preparar el viaje:** marca el aterrizaje y hasta 6 puntos con clics en el mapa (o "Cargar ejemplo") y pulsa "Calcular ruta".
-2. **Caminata:** "Comenzar caminata" abre el HUD **en pausa**; pulsa "Iniciar" (en la demo o en el teléfono). El mapa sigue al astronauta y llegan las alertas cada segundo.
+1. **Plan the trip:** click the map to mark the landing site and up to six visits (or choose “Load example”), then select “Calculate route.”
+2. **Walk:** “Start walk” opens the HUD **paused**. Select “Start” in the demo or on the phone. The map follows the astronaut, and alerts arrive every second.
+   - In **Automatic route** mode, the astronaut follows the route.
+   - In **Manual** mode, use **WASD**, arrow keys, the on-screen D-pad (press and hold), a connected joystick, or the phone. The astronaut may leave the route but not the demo area. A stop counts as reached within 25 m. Switching to manual reduces speed to x10.
+   - In both modes, position and sensor data are sent to the monitoring backend every second.
 
-   - **Control "Ruta automática":** el astronauta sigue la ruta solo.
-   - **Control "Manual":** se mueve con **WASD**, las **flechas**, la **cruceta** en pantalla (mantener apretada), un **joystick** conectado o el teléfono. Puede salir de la ruta, pero no del tramo de la demo. Una parada cuenta como alcanzada al pasar a menos de 25 m. Al entrar en manual, la velocidad baja a x10.
-   - En los dos modos, cada segundo se envían la posición y los sensores al backend de monitoreo.
+The optional **THEMIS IR heatmap** layer shows relative infrared intensity in false color, not temperature in °C. The front end gets its catalog entry from `/api/layers` and the image from the layers backend through the public interface server.
 
-La capa opcional **Mapa de calor · THEMIS IR** se activa en el selector de capas.
-Muestra intensidad infrarroja relativa en falso color, no temperatura en °C.
-El front obtiene la capa del catálogo `/api/layers` y su imagen del backend de
-capas, a través del servidor público de la interfaz.
+### Control the demo from a phone
 
-### Controlar la demo desde el teléfono
+The computer browser is the **display** and the phone is the **controller**. Actions on the phone appear in the demo. On the phone you can plan (add, remove, and reorder visits; choose layers; load the example; calculate and start the walk) and, during the walk, start, pause, reset, change speed and mode, move with the touch joystick, view position, next stop, and alerts, or plan another trip.
 
-La demo (navegador del computador) es la **pantalla** y el teléfono es el **control**: todo lo que hagas en el teléfono se ve en la demo.
+To connect locally:
 
-- **Preparar el viaje:** marcar el aterrizaje y los puntos tocando el mapa (o con coordenadas), quitarlos y reordenarlos, elegir capas, cargar el ejemplo, calcular la ruta y comenzar la caminata.
-- **Caminata:** iniciar, pausar y reiniciar, velocidad, modo, joystick táctil para caminar, y ver posición, próxima parada y alertas. También volver a planificar otro viaje.
+1. Start the interface so it is accessible on the network:
 
-Cómo conectarlo:
-
-1. En el computador, arranca la interfaz con acceso desde la red:
    ```bash
    npm run dev -- --host
    ```
-   Vite muestra una línea `Network: http://192.168.x.x:5173/`.
-2. Abre la demo en el navegador del computador. En el panel izquierdo aparece un **QR** y **la dirección exacta para el teléfono**, por ejemplo `http://192.168.1.20:5173/#control=4976` (el código cambia).
-3. En el teléfono, conectado a **la misma red Wi-Fi**, lee el QR con la cámara o abre esa dirección **completa, con `#control=…` al final**. Si abres la dirección sin `#control`, el teléfono muestra un aviso con el botón **"Usar como control"**.
-4. La demo muestra "Teléfono conectado". Desde ahí, todo se maneja en el teléfono.
 
-El código evita que el teléfono controle otra demo abierta en el mismo servidor (por ejemplo, la de otra persona del equipo). Se puede abrir directo con `#control=4976`.
+   Vite prints a `Network: http://192.168.x.x:5173/` address.
+2. Open the demo on the computer. The left panel shows a **QR code** and the **exact phone URL**, such as `http://192.168.1.20:5173/#control=4976` (the code changes).
+3. Connect the phone to the **same Wi-Fi network** and scan the QR code or open the **complete URL, including `#control=…`**. Without the fragment, the phone offers a “Use as controller” button.
+4. The demo reports “Phone connected”; it can now be controlled from the phone.
 
-**Un solo piloto a la vez.** Si varias personas leen el QR, la demo obedece solo a la primera (el piloto); las demás quedan en **modo espectador**: ven el viaje y los datos en su teléfono, con los mandos desactivados, y la demo ignora sus órdenes.
-- El piloto puede **"Soltar el control"**; entonces un espectador puede **"Tomar el control"**.
-- Si el piloto cierra la página o pierde la señal, el control se libera solo a los **5 s**.
-- La lógica está en [src/control/piloto.js](src/control/piloto.js).
+The code prevents a phone from controlling another demo on the same server. Direct URLs with `#control=4976` also work. **Only one pilot at a time:** the first phone to join controls the demo; additional phones are **spectators** with disabled controls. The pilot can release control, allowing a spectator to take over. Closing the page or losing the connection releases control after **5 seconds**. See [src/control/piloto.js](src/control/piloto.js).
 
-**Códigos únicos.** En la versión publicada, cada demo pide su código al servidor al abrirse, y el servidor nunca entrega uno que esté usando otra demo abierta. Un código queda libre 10 min después de cerrar su demo. Con `npm run dev` el código sigue siendo al azar.
+In the published version, each demo asks the server for a unique code; the server does not reuse one held by another open demo. Codes become available 10 minutes after a demo closes. Under `npm run dev`, codes remain random.
 
-- **En Fedora**, si el teléfono no carga la página, abre el puerto mientras pruebas: `sudo firewall-cmd --add-port=5173/tcp` (dura hasta reiniciar).
-- **Sin teléfono:** durante la caminata, "Abrir ↗" (junto al código) abre el control en una **ventana aparte** del mismo computador. No uses otra pestaña de la misma ventana: el navegador pausa la demo cuando no se ve.
-- **En el mapa del teléfono** se acerca con los botones + y − (todavía no con dos dedos).
+- **Fedora:** if the phone cannot load the page, temporarily open the port with `sudo firewall-cmd --add-port=5173/tcp` (until reboot).
+- **Without a phone:** during the walk, “Open ↗” next to the code opens the controller in a **separate window** on the same computer. Avoid another tab in the same window because browsers pause a hidden demo.
+- The phone map uses + and − buttons for zoom; two-finger zoom is not yet supported.
 
-Cómo funciona: la demo es la dueña del estado; el teléfono manda órdenes y dibuja lo que la demo le devuelve. Las ventanas del mismo navegador se comunican con `BroadcastChannel`, y los otros dispositivos a través del servidor de Vite (plugin en `vite.config.js`). Por eso el teléfono funciona solo con `npm run dev`.
+The demo owns the state. The phone sends commands and renders the state returned by the demo. Windows in the same browser use `BroadcastChannel`; other devices communicate through the Vite server plugin in `vite.config.js`. This local phone setup therefore requires `npm run dev`.
 
-### Backends: qué variable usar
+### Backend configuration
 
-Todo se configura en `.env.local` (no se sube a git). Sin ninguna variable, todo es falso.
+Set variables in `.env.local`, which is excluded from Git. With no variables, the interface uses mock data.
 
-| Variable | Backend | Para qué |
+| Variable | Backend | Purpose |
 | --- | --- | --- |
-| `VITE_API_URL` | **Backend 1**: API del equipo del mapa | **Calcular la ruta** en la planificación. Con `POST /api/plan` (rama `feat/mapa-layers`), que pasa la ruta al análisis del equipo 3: sigue el terreno, elige el orden, estima el oxígeno, marca las visitas inalcanzables y divide en varias salidas si hace falta. Si ese endpoint no existe, usa el flujo anterior `POST /api/routes`. |
-| `VITE_ANALISIS_URL` | **Backend 2**: servicio de análisis de Javier (**en desarrollo**) | **Métricas durante el viaje**: lo que falta desde la posición actual (distancia, tiempo, oxígeno, pendientes y peligros). |
-| `VITE_MONITOREO_URL` | **Monitoreo en tiempo real** (Ingrid, en el servicio de análisis: misma dirección que el backend 2) | Recibe la posición cada segundo y devuelve el oxígeno, el costo de volver y las alertas. |
+| `VITE_API_URL` | **Backend 1**, the map team's API | Plans routes through `POST /api/plan` on branch `feat/mapa-layers`. It delegates to team 3's analysis to follow terrain, order visits, estimate oxygen, report unreachable visits, and split trips if needed. Falls back to `POST /api/routes` if that endpoint is absent. |
+| `VITE_ANALISIS_URL` | **Backend 2**, Javier's analysis service | Remaining distance, time, oxygen, grades, and hazards from the current position. |
+| `VITE_MONITOREO_URL` | **Real-time monitoring**, Ingrid's service | Sends position every second and receives oxygen, return cost, and alerts. It runs with the analysis service. |
 
-**Para desarrollar con los datos reales**, `.env.local` apunta al servidor publicado de la interfaz, que reenvía a los backends privados de Google Cloud (los backends no se pueden llamar directo desde tu computador):
+For development with real data, point `.env.local` at the published interface server, which forwards to private Google Cloud backends:
 
-```
+```dotenv
 VITE_API_URL=https://martian-map.page
 VITE_ANALISIS_URL=https://martian-map.page/analisis
 VITE_MONITOREO_URL=https://martian-map.page/monitoreo
 ```
 
-### Publicar con el servidor propio de la interfaz (recomendado)
+### Publish with the interface server
 
-La interfaz tiene su propio servidor ([servidor/](servidor/README.md)): sirve la página, reenvía los pedidos a los backends y pasa los mensajes del teléfono. Así **funciona el control desde el teléfono en la versión publicada**, y los backends pueden seguir en `http` y por IP. Solo el servidor de la interfaz necesita `https`.
+The [interface server](servidor/README.md) serves the page, proxies backend requests, and relays phone messages. This enables phone control in the published version while the backends remain private and may use HTTP or IP addresses; only the interface server needs HTTPS.
 
 ```bash
 npm run build:servidor
 BACKEND_1_URL=… BACKEND_2_URL=… BACKEND_MONITOREO_URL=… npm start   # http://localhost:8080
 ```
 
-Hoy está desplegado en Google Cloud (sección siguiente). Para desplegarlo en otra máquina (por ejemplo, AWS): [servidor/README.md](servidor/README.md).
+The current deployment is on Google Cloud. For another host, such as AWS, see [servidor/README.md](servidor/README.md).
 
-### Despliegue automático en Google Cloud
+### Automatic Google Cloud deployment
 
-Cada push a `main` ejecuta `.github/workflows/deploy-gcp.yml`: prueba los textos bilingües, construye el
-servidor propio y actualiza Cloud Run `martian-front` en `us-east1`. El dominio
-público es [martian-map.page](https://martian-map.page). `BACKEND_1_URL`,
-`BACKEND_2_URL` y `BACKEND_MONITOREO_URL` apuntan al backend privado de capas;
-ese backend reenvía análisis y monitoreo a la VM dedicada. GitHub se autentica
-con Workload Identity Federation, restringida al ID de este repo y a `main`.
-No hay claves GCP en GitHub. Los workflows anteriores de AWS y GitHub Pages
-siguen disponibles para ejecución manual.
+Every push to `main` runs `.github/workflows/deploy-gcp.yml`: it tests bilingual text, builds the interface server, and updates the `martian-front` Cloud Run service in `us-east1`. Its public domain is [martian-map.page](https://martian-map.page). `BACKEND_1_URL`, `BACKEND_2_URL`, and `BACKEND_MONITOREO_URL` point to the private layers backend, which forwards analysis and monitoring to a dedicated VM. GitHub authenticates with Workload Identity Federation restricted to this repository ID and `main`; no GCP keys are stored on GitHub. Older AWS and GitHub Pages workflows remain available for manual execution.
 
-### Anterior: GitHub Pages + túneles de Cloudflare (ya no se usa)
+### Previous deployment: GitHub Pages and Cloudflare tunnels
 
-> Este camino quedó reemplazado por el despliegue en Google Cloud (martian-map.page). Se deja por si hiciera falta volver a GitHub Pages; su workflow ahora solo corre a mano.
+> Google Cloud deployment replaced this route. Keep these instructions only if a return to GitHub Pages is needed.
 
-La página publicada (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) es `https`, así que **solo puede usar backends `https`**: el navegador bloquea las llamadas a `http://IP:puerto`. Los backends se exponen por `https` con túneles de Cloudflare.
+The Pages site (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) uses HTTPS and can therefore call only HTTPS backends; browsers block `http://IP:port` calls. Cloudflare tunnels expose the backends over HTTPS.
 
-1. **Marti y Javier abren los túneles** en sus servidores: instrucciones en [TUNELES.md](TUNELES.md). Cada uno pasa su dirección `https://….trycloudflare.com`.
-2. **Con las dos direcciones**, desde la carpeta `Interfaz`:
+1. Marti and Javier open tunnels on their servers using [TUNELES.md](TUNELES.md) and provide their `https://….trycloudflare.com` URLs.
+2. From `Interfaz`, configure both URLs:
+
    ```bash
    ./scripts/configurar-backends.sh https://<backend-1>.trycloudflare.com https://<backend-2>.trycloudflare.com
    ```
-   El script comprueba que respondan, escribe `.env.local`, guarda las direcciones como variables del repo en GitHub (`VITE_API_URL`, `VITE_ANALISIS_URL`) y vuelve a publicar la página.
-3. **Una sola vez**, en GitHub: Settings → Pages → Build and deployment → Source → **"GitHub Actions"**.
 
-La publicación la hace [.github/workflows/deploy.yml](.github/workflows/deploy.yml) en cada push a `main`: construye la app con Vite usando esas variables y publica la carpeta `dist/`. Sin variables, la página publicada usa los datos falsos.
+   The script checks both backends, writes `.env.local`, saves `VITE_API_URL` and `VITE_ANALISIS_URL` as GitHub repository variables, and republishes.
+3. Once, set GitHub Settings → Pages → Build and deployment → Source to **GitHub Actions**.
 
-En la página publicada, el teléfono como control no funciona (necesita `npm run dev -- --host` en un computador); sí funciona el control en otra ventana del mismo navegador.
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) builds with Vite and publishes `dist/` after each push to `main`. Without variables, the published page uses mock data. Phone control does not work on that Pages deployment (it needs `npm run dev -- --host` on a computer), although a controller in another window of the same browser does. If a tunnel URL changes, repeat step 2.
 
-Si la dirección de un túnel cambia (se reinició el túnel o el servidor), se vuelve a correr el paso 2 con la nueva.
+### Connect to the map team's API
 
-### Con la API del equipo del mapa
-
-Su API vive en el repo [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map), rama `mapa-nacho-marti`. El código está en `server/index.js` y el contrato en `docs/API.md`. Se necesitan dos terminales.
-
-**Terminal 1: levantar la API**
+The API is in [martian-map](https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map), branch `mapa-nacho-marti`, in `server/index.js`. Its contract is in `docs/API.md`. Use two terminals:
 
 ```bash
-# la primera vez
+# Terminal 1: first-time setup
 git clone https://github.com/NasaSpaceChallenge-DeploySinMerken/martian-map.git
 cd martian-map
 git checkout mapa-nacho-marti
 npm install
-
-# cada vez
+# Each time: start the API at http://localhost:3000
 npm run api
-```
-
-Queda en `http://localhost:3000`. Para comprobar que responde:
-
-```bash
 curl http://localhost:3000/api/health
-# {"ok":true,...}
 ```
 
-**Terminal 2: la interfaz apuntando a la API**
-
 ```bash
+# Terminal 2: point the interface at the API
 cd Interfaz
 echo "VITE_API_URL=http://localhost:3000" > .env.local
 npm run dev
 ```
 
-Abre `http://localhost:5173`, pulsa "Cargar ejemplo" y "Calcular ruta". Si la conexión funciona, el panel muestra "Ruta validada. Esperando el análisis del equipo 3…" y la elevación de la ruta. Con el backend falso, en cambio, aparece la nota "Backend falso".
+At `http://localhost:5173`, choose “Load example” and “Calculate route.” A working connection shows route validation and elevation; mock mode shows a mock-backend notice. To return to mock mode, remove `.env.local` and restart Vite.
 
-**Volver al backend falso:** borrar `.env.local` (`rm .env.local`) y reiniciar `npm run dev`.
+Common issues:
 
-**Problemas comunes**
+- **Cannot connect to backend:** start the API and check `curl http://localhost:3000/api/health`.
+- **Changes to `.env.local` have no effect:** Vite reads it at startup; restart `npm run dev`.
+- **Port 5173 is busy:** Vite chooses another port and prints it. The API accepts requests from any port.
+- **`.env.local` is not committed:** each developer can point to their own API.
 
-- **"No se pudo conectar con el backend":** la API no está corriendo o está en otro puerto. Revisa la terminal 1 y el `curl` de arriba.
-- **Cambié `.env.local` y no pasa nada:** Vite lee ese archivo solo al arrancar, así que hay que detener `npm run dev` (Ctrl+C) y volver a correrlo.
-- **El puerto 5173 está ocupado:** Vite usa el siguiente libre (5174, etc.) y lo indica en la terminal. La API acepta pedidos desde cualquier puerto.
-- **`.env.local` no se sube a git:** es a propósito, porque cada uno apunta a su propia API.
+The adapter in `src/api/cliente.js` translates the map API response:
 
-Qué se usa de su API y qué sigue siendo falso (todo se traduce en `src/api/cliente.js`):
-
-| Parte | Origen |
+| Feature | Source |
 | --- | --- |
-| Calcular ruta | `POST /api/routes`: valida que los puntos estén en la zona y con elevación, y devuelve la distancia y la elevación. |
-| Errores de la ruta | `OUT_OF_SPACE` y `NO_DATA`: se muestran con el nombre del punto y el pin en rojo. |
-| Tiempo, oxígeno, esfuerzo y pendiente | Llegan con el análisis del equipo 3. La interfaz consulta `GET /api/routes/:id` cada 3 s y los muestra cuando llegan. |
-| Capas del mapa | Por ahora, teselas de Mars Trek. Las capas de su API son GeoTIFF para OpenLayers y se usarán al integrar su mapa. |
-| Monitoreo y alertas | **Falso** hasta que el otro equipo exponga su endpoint. El falso avisa de oxígeno, salud, temperatura del traje y desvío de la ruta (más de 50 m). |
+| Route calculation | `POST /api/routes` validates coordinates and elevation, then returns distance and elevation. |
+| Route errors | `OUT_OF_SPACE` and `NO_DATA` identify the point and show a red pin. |
+| Time, oxygen, effort, grade | Team 3's analysis; the interface polls `GET /api/routes/:id` every 3 s. |
+| Map layers | Currently Mars Trek tiles. The API's GeoTIFF layers are intended for OpenLayers integration. |
+| Monitoring and alerts | Mocked until the other team's endpoint is connected; mock alerts cover oxygen, health, suit temperature, and route deviation over 50 m. |
 
-### Calcular la ruta con `POST /api/plan` (backend 1 + análisis del equipo 3)
+### Plan with `POST /api/plan`
 
-En la rama `feat/mapa-layers` de martian-map, el backend 1 tiene `POST /api/plan`: recibe el aterrizaje y las visitas, se los pasa al `POST /plan` del servicio de análisis y devuelve su respuesta tal cual. Para usarlo, el backend 1 se levanta con `ANALYSIS_URL`:
+On martian-map branch `feat/mapa-layers`, Backend 1 accepts the landing site and visits, forwards them to the analysis service's `POST /plan`, and returns its response unchanged. Start Backend 1 with `ANALYSIS_URL`:
 
 ```bash
-# en martian-map
 git checkout feat/mapa-layers
-ANALYSIS_URL=http://<servicio-de-análisis>:8000 npm run api   # http://localhost:3000
+ANALYSIS_URL=http://<analysis-service>:8000 npm run api
 ```
 
-Con eso, "Calcular ruta" muestra:
+“Calculate route” then shows a terrain-following route and selected visit order, total and per-leg distance, duration, and oxygen, plus unreachable visits and their reasons. Unreachable visits appear in red and are omitted from the walk. If none are reachable, the walk cannot start. When one tank is insufficient, the route returns to the landing site for a refill; metrics show departures and refills, and the astronaut passes through “Landing (refill)” with a full tank.
 
-- la ruta **siguiendo el terreno** y **el orden** que conviene (la lista de puntos se reordena sola);
-- distancia, duración y **oxígeno** del total y por tramo;
-- **visitas inalcanzables**: se avisan con su motivo ("no hay camino transitable en el terreno" o "no alcanza el oxígeno para volver con reserva"), se marcan en rojo y quedan fuera de la caminata. Si ninguna es alcanzable, sale un error y no se puede comenzar;
-- **varias salidas**: si un tanque no alcanza, la ruta vuelve al aterrizaje a recargar. Las métricas indican cuántas salidas y recargas hay, y cada tramo dice a qué salida pertenece. En la caminata, el astronauta pasa por "Aterrizaje (recarga)" y el tanque vuelve a 100 %.
+If Backend 1 lacks `/api/plan` or `ANALYSIS_URL`, the interface uses the older `/api/routes` flow. With many distant points, analysis may exceed 60 seconds and Backend 1 times out. The example takes about 6 seconds, while six widely spaced points can take over 60 seconds. Set `ANALYSIS_TIMEOUT_MS` to raise the limit.
 
-Si el backend 1 no tiene `/api/plan` (por ejemplo, la rama `mapa-nacho-marti`) o le falta `ANALYSIS_URL`, la interfaz usa sola el flujo anterior (`/api/routes`).
+### Analysis service: metrics during the walk
 
-**Ojo con los tiempos:** con muchos puntos lejanos, el análisis puede tardar más de 60 s y el backend 1 corta con "El análisis no respondió en 60000 ms". Con el ejemplo tarda unos 6 s; con 6 puntos repartidos por todo el tramo, más de 60 s. Se puede subir el límite con `ANALYSIS_TIMEOUT_MS` al levantar el backend 1.
+Backend 2 is Javier's Python analysis service (martian-map branch `feat/javier/analisis`, `analysis/server.py`; contract in its README). It currently runs on a private Google Cloud VM with the Gale DEM; the interface reaches it through `/analisis` and `/monitoreo` on its own server.
 
-### Con el servicio de análisis: métricas durante el viaje (en desarrollo)
+During the walk, the interface sends the **current position and remaining stops in order** to `POST /gale/analyze`. It requests metrics at the start, then whenever the astronaut moves more than 15 m or changes stops, with at most one request in flight. The HUD shows remaining distance, time, oxygen needed to finish the current departure, and maximum grade toward the next stop. It warns when oxygen is insufficient with reserve or the current leg has a hazard. The phone also shows remaining time and oxygen.
 
-El backend 2 es el servicio de Javier, en Python (rama `feat/javier/analisis` de martian-map, `analysis/server.py`; contrato en su `README.md`). Hoy corre en una VM privada de Google Cloud con el DEM de Gale; la interfaz llega a él a través de su servidor (`/analisis` y `/monitoreo`).
+Without `VITE_ANALISIS_URL`, the panel uses a straight-line local estimate (2.5 km/h, 1.43 g/min, 700 g tank). The service requires more than 1 m between consecutive points, so the interface removes a stop once the astronaut is on it. HTTP analysis works with `npm run dev`; an HTTPS deployment needs an HTTPS proxy. All time and oxygen figures are exploratory, not EVA safety guidance. The response adapter is `obtenerMetricasViaje` in `src/api/cliente.js`.
 
-Durante la caminata, la interfaz le manda la **posición actual y las paradas que faltan, en orden**, a `POST /gale/analyze`. Lo pide al empezar y después cada vez que el astronauta se mueve más de 15 m o cambia de parada, nunca dos pedidos a la vez. Con los tramos de ida que devuelve, el HUD muestra el panel **"Lo que falta · backend 2"**:
+### Real-time monitoring
 
-- distancia, tiempo y **oxígeno necesario para terminar** (con varias salidas, para terminar **la salida actual**, hasta la próxima recarga), comparado con el oxígeno que queda en el tanque;
-- la pendiente máxima del tramo hacia la próxima parada.
+Monitoring runs in Ingrid's analysis service (martian-map branch `ingrid-consumo-tiempo-real`, `POST /api/monitoreo`; contract in `docs/API.md`). Oxygen, route status, and related alerts come from the backend; the interface animates the astronaut rather than reading a real suit. **Vital signs are simulated**, as described below.
 
-De esas métricas salen dos alertas: **"El oxígeno no alcanza para terminar con reserva"** (crítica) y el aviso de **peligros del tramo actual**, como "pendiente fuerte". El teléfono también muestra el tiempo y el oxígeno para terminar.
+1. `/plan` returns `idRuta` through Backend 1. If it is `null` (the route does not return to landing), the walk can proceed without monitoring and the HUD says so.
+2. Every second the interface sends `{ idRuta, t, posicion, sensores }`; `t` is mission time in seconds. Resetting sets `t = 0`, which the backend treats as a new walk.
+3. The HUD displays tank oxygen, oxygen for the return, reserve, route deviation, and backend alerts.
+4. If the backend restarts and loses the route (`404`), the HUD offers a “Plan again” button.
 
-Sin `VITE_ANALISIS_URL`, el panel dice "estimación local" y calcula en línea recta con los mismos supuestos (2,5 km/h, 1,43 g/min, tanque de 700 g).
+The remaining distance, time, and grade still come from `/gale/analyze`; oxygen comes only from monitoring to avoid conflicting figures. Configure `VITE_MONITOREO_URL` in `.env.local` for development or `BACKEND_MONITOREO_URL` on the interface server. On Google Cloud it points to the private layers-backend proxy.
 
-Notas:
+### Simulated vital signs and “Simulate emergency”
 
-- **El servicio pide más de 1 m entre puntos seguidos.** Cuando el astronauta está encima de una parada, la interfaz la saca de la lista.
-- **La dirección es `http`.** Funciona con `npm run dev`; si la interfaz se publica con `https` (por ejemplo, en GitHub Pages), el navegador va a bloquear las llamadas hasta que el servicio tenga `https`.
-- **Los tiempos y el oxígeno son estimaciones exploratorias**: el mismo servicio aclara que no es una herramienta de seguridad para una EVA.
+The backend accepts `sensores` but does not yet use them. For the demo, the interface simulates pulse, body temperature, and O₂ saturation in [src/monitoreo/signosVitales.js](src/monitoreo/signosVitales.js). Simulated cards and alerts are labeled as such.
 
-La traducción de su respuesta está en `src/api/cliente.js` (`obtenerMetricasViaje`).
+- **Pulse from exertion:** based on a NASA study of 132 Shuttle and ISS EVAs, pulse = metabolism (BTU/h) ÷ (0.142 BTU per beat × 60). Flat walking uses the mean EVA metabolism (253 W → ~101 beats/min), with 3 W added per 1% grade; rest uses 160 W. Pulse is capped at 185 beats/min because the ISS relationship does not apply well at very high metabolism.
+- **Simulate emergency:** a pilot-only phone button worsens all three signs evenly over 12 real-time seconds to critical levels (pulse ~172, temperature ~39.4 °C, saturation ~87.5%). Warnings appear after ~4–7 s, critical alerts after ~9–10 s. “Return to normal” restores them over another 12 s. Simulation runs even while the walk is paused and is not accelerated by x60 speed.
+- Values are sent in `sensores` as `pulso`, `temperatura`, `saturacionO2`, and `simulado: true` for future backend evaluation.
 
-### Monitoreo en tiempo real (Ingrid)
+Vital signs use green (normal), yellow (warning), and red (critical). Oxygen takes the highest severity sent by the backend: white with no alert or an informational one, yellow when return margin or reserve is no longer covered, and red when a return is impossible. See [src/monitoreo/nivelOxigeno.js](src/monitoreo/nivelOxigeno.js). These thresholds are project assumptions, not NASA thresholds:
 
-El monitoreo está en el servicio de análisis (rama `ingrid-consumo-tiempo-real` de martian-map, `POST /api/monitoreo`; contrato en su `docs/API.md`). El oxígeno, la ruta y sus alertas vienen solo del backend: la interfaz mueve al astronauta (no hay traje real). **La única excepción son los signos vitales**, que se simulan y se muestran marcados como "Simulado" (ver más abajo).
+| Sensor | Normal | Warning | Critical |
+| --- | --- | --- | --- |
+| Pulse (beats/min) | 86–120 (103 ± 17 in the study) | > 140 | > 160 |
+| Body temperature | 36.0–37.5 °C | ≥ 38 or ≤ 35.5 °C | ≥ 39 or ≤ 35 °C |
+| O₂ saturation | ≥ 95% | < 94% | < 90% |
 
-1. `/plan` (por el backend 1) devuelve un `idRuta`. Si viene en `null` (la ruta no vuelve al aterrizaje), la caminata se puede hacer pero no se monitorea, y el HUD lo indica.
-2. Cada segundo, la interfaz manda `{ idRuta, t, posicion, sensores }`, donde `t` son los segundos de misión. "Reiniciar" vuelve a `t = 0`, que el backend toma como una caminata nueva.
-3. Con lo que responde, el HUD muestra el panel **"Oxígeno"** (oxígeno en el tanque, oxígeno para volver, reserva, desvío de la ruta) y las alertas que manda el backend.
-4. Si el backend se reinicia y pierde la ruta (`404`), aparece el aviso con el botón **"Volver a planificar"**.
+## Structure
 
-El panel **"Lo que falta"** sigue saliendo de `/gale/analyze` (distancia, tiempo y pendiente de lo que queda). El oxígeno se toma solo del monitoreo, para no mostrar dos cifras distintas.
-
-Configuración: `VITE_MONITOREO_URL` en `.env.local` (para `npm run dev`) o `BACKEND_MONITOREO_URL` en el servidor propio. En Google Cloud apunta al proxy privado del backend de capas. Sin esa dirección, el HUD muestra que el monitoreo no está configurado.
-
-### Signos vitales simulados y "Simular emergencia"
-
-El backend acepta `sensores` pero todavía no los usa (fase 2). Para mostrar en la demo las alertas fisiológicas, la interfaz **simula** pulso, temperatura del cuerpo y saturación de O₂ ([src/monitoreo/signosVitales.js](src/monitoreo/signosVitales.js)). Todo lo simulado lleva la etiqueta **"Simulado"**: la tarjeta "Signos vitales" del HUD y sus alertas.
-
-- **Pulso desde el esfuerzo** (estudio de la NASA, 132 EVA de Shuttle e ISS): pulso = metabolismo (BTU/h) ÷ (0,142 BTU por latido × 60). Caminando en plano se usa el metabolismo promedio de una EVA (253 W → ~101 latidos/min), que sube 3 W por cada 1 % de pendiente del tramo; en reposo, 160 W. Tope de 185 latidos/min, porque la relación viene de la ISS y no sirve a metabolismos muy altos.
-- **"Simular emergencia"**: botón en el control del teléfono (solo el piloto). Pensado para la demo: en 12 s los tres signos empeoran de forma pareja, de donde estaban hasta nivel crítico (pulso ~172, temperatura ~39,4 °C, saturación ~87,5 %); las alertas saltan primero en aviso (a los ~4-7 s) y después en crítico (a los ~9-10 s). "Volver a la normalidad" los baja de forma pareja en otros 12 s. Corre en tiempo real (la velocidad x60 no lo acelera) y también en pausa.
-- Los valores se mandan en `sensores` (`pulso`, `temperatura`, `saturacionO2`, `simulado: true`), para cuando el backend los evalúe.
-
-Colores: signos vitales en verde (normal), amarillo (aviso) y rojo (crítico). El oxígeno toma el color de la alerta más grave que manda el backend: blanco sin alertas o con la informativa, amarillo con el aviso (ya no cubre el margen de regreso ni la reserva) y rojo con la crítica (no alcanza para volver) ([src/monitoreo/nivelOxigeno.js](src/monitoreo/nivelOxigeno.js)).
-
-Umbrales (supuestos del proyecto: la NASA no los define):
-
-| Sensor | Normal | Aviso | Crítico |
-|---|---|---|---|
-| Pulso (latidos/min) | 86–120 (103 ± 17 del estudio) | > 140 | > 160 |
-| Temperatura del cuerpo | 36,0–37,5 °C | ≥ 38 o ≤ 35,5 °C | ≥ 39 o ≤ 35 °C |
-| Saturación de O₂ | ≥ 95 % | < 94 % | < 90 % |
-
-## Estructura
-
-```
+```text
 src/
-  App.jsx                     pasa de la fase 1 a la fase 2
-  style.css                   estilos de toda la interfaz
-  api/
-    cliente.js                llamadas al backend (Contrato_API.md)
-    mock.js                   backend falso
-  datos/gale.js               tramo de la demo, máximo de puntos y ejemplo
-  mapa/
-    geo.js                    cálculos de teselas, distancias y rumbo
-    MapaTeselas.jsx           mapa provisional con teselas de Mars Trek
-  planificacion/              fase 1: preparar el viaje
-    Planificacion.jsx         pantalla completa
-    MapaPlanificacion.jsx     mapa con pines y clic para marcar
-    SelectorCapas.jsx
-    ListaPuntos.jsx
-    FormCoordenadas.jsx
-    Metricas.jsx
-  monitoreo/                  fase 2: monitorear la caminata
-    Monitoreo.jsx             HUD completo
-    useMonitoreo.js           avanza la simulación y manda sensores cada 1 s
-    sensoresSimulados.js      movimiento del astronauta (no simula sensores)
-    signosVitales.js          signos vitales SIMULADOS (pulso, temperatura, saturación) y sus alertas
-    useAlertas.js, Alertas.jsx
-    BarraSuperior.jsx, Brujula.jsx, Minimapa.jsx
-    Cruceta.jsx               control manual en pantalla
-    PanelViaje.jsx            oxígeno (monitoreo) y lo que falta del viaje (backend 2)
-  control/                    control de la demo desde el teléfono (#control)
-    Control.jsx               emparejar con la demo y controlar la caminata
-    PlanificacionRemota.jsx   preparar el viaje desde el teléfono
-    canal.js                  comunicación entre demo y teléfono
-    piloto.js                 un solo piloto a la vez; los demás teléfonos, espectadores
-    EnlaceTelefono.jsx        QR y dirección para abrir el control en el teléfono
-    sesion.js                 código de 4 dígitos de cada demo
-mockup/                       maquetas HTML sueltas (referencia de diseño)
-servidor/                     servidor propio: sirve la página, reenvía a los backends y pasa los mensajes del teléfono
-scripts/configurar-backends.sh configura las direcciones https de los backends
-.github/workflows/deploy-gcp.yml  despliega Cloud Run en cada push a main
+  App.jsx                     transitions between planning and walking
+  style.css                   all interface styles
+  api/cliente.js              backend adapter (Contrato_API.md)
+  api/mock.js                 mock backend
+  datos/gale.js               demo area, visit limit, and example
+  mapa/geo.js                 tile, distance, and bearing calculations
+  mapa/MapaTeselas.jsx        provisional Mars Trek tile map
+  planificacion/              planning screen, map, visits, layers, and metrics
+  monitoreo/                  walk HUD, simulation, alerts, vital signs, and manual controls
+  control/                    phone pairing and control (#control)
+mockup/                       standalone HTML design mockups
+servidor/                     interface server and backend/phone relay
+scripts/configurar-backends.sh
+.github/workflows/deploy-gcp.yml
 ```
 
-`MapaTeselas.jsx` es un mapa provisional: el definitivo lo hace el equipo del mapa (ver [Propuesta_equipo.md](Propuesta_equipo.md), sección 4).
-
-## Diseño
-
-Todo el estilo está en `src/style.css`. Los colores y fuentes son variables al inicio (`:root`: `--acento`, `--base`, `--punto`, `--critico`, `--aviso`, `--info`, etc.), así que cambiarlas ahí cambia toda la interfaz. El archivo está ordenado por pantalla: base y controles, mapa, fase 1 (preparar el viaje), fase 2 (HUD de la caminata), cruceta y control desde el teléfono. Las maquetas de `mockup/` son la referencia de diseño original.
+`MapaTeselas.jsx` is provisional; the map team is building the final map (see section 4 of [Propuesta_equipo.md](Propuesta_equipo.md)). All styles are in `src/style.css`. Colors and fonts are variables near `:root` (`--acento`, `--base`, `--punto`, `--critico`, `--aviso`, `--info`, etc.). The file is organized by screen and control; `mockup/` contains the original design references.
