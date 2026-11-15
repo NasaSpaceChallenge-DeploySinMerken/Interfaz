@@ -1,6 +1,6 @@
 # Servidor de la interfaz
 
-Servidor propio de la interfaz de Martian Map, para publicarla en AWS (o en cualquier máquina con Node). Es un solo archivo, [index.js](index.js), sin dependencias: solo necesita **Node 18 o superior**.
+Servidor propio de la interfaz de Martian Map. **Hoy está desplegado en Google Cloud** (Cloud Run `martian-front`, [martian-map.page](https://martian-map.page)) con `.github/workflows/deploy-gcp.yml`, que hizo Javier. Esta guía sirve para correrlo en otra máquina con Node (por ejemplo, AWS). Es un solo archivo, [index.js](index.js), sin dependencias: solo necesita **Node 18 o superior**.
 
 Hace tres cosas:
 
@@ -26,12 +26,14 @@ Si un backend no está configurado o no responde, la interfaz lo muestra en el H
 ```bash
 npm install
 npm run build:servidor
-BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 BACKEND_MONITOREO_URL=http://52.6.216.161:8000 npm start
+BACKEND_1_URL=… BACKEND_2_URL=… BACKEND_MONITOREO_URL=… npm start
 ```
 
 Abre `http://localhost:8080`. El teléfono, en la misma red, abre `http://<ip-del-computador>:8080/#control`.
 
 ## Desplegar en AWS automáticamente (CI/CD)
+
+> Alternativa al despliegue actual en Google Cloud. El workflow de AWS ya no corre en cada push: se lanza a mano desde Actions → "Desplegar en AWS" → "Run workflow".
 
 El workflow [.github/workflows/deploy-aws.yml](../.github/workflows/deploy-aws.yml) despliega en cada push a `main`:
 

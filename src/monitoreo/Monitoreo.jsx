@@ -13,6 +13,7 @@ import { Alertas } from './Alertas'
 import { Minimapa } from './Minimapa'
 import { Cruceta } from './Cruceta'
 import { PanelOxigeno, PanelViaje } from './PanelViaje'
+import { Tarjeta } from './Tarjeta'
 import { colorSalida } from '../mapa/colores'
 import { LeyendaSalidas } from '../planificacion/MapaPlanificacion'
 
@@ -92,12 +93,19 @@ export function Monitoreo({ viaje, onSalir }) {
 
         <div className="lateral">
           <Minimapa capas={viaje.capas} camino={camino} rutasSalidas={rutasSalidas} paradas={paradas} aterrizaje={viaje.aterrizaje} lectura={lectura} />
-          <section className="panel objetivo" aria-label="Recorrido">
-            <span className="etiqueta">Destino</span>
-            <span className="objetivo__nombre">{destino?.nombre ?? '—'}</span>
-            <div className="objetivo__fila"><span>Distancia restante</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
+          <Tarjeta
+            etiqueta="Próxima parada"
+            resumen={lectura.proxima ? `${lectura.proxima.nombre} · ${formatearDistancia(lectura.proxima.faltaM)}` : 'Llegaste'}
+            className="objetivo"
+            ariaLabel="Recorrido"
+          >
+            <div className="objetivo__fila objetivo__fila--titulo">
+              <span className="objetivo__nombre">{lectura.proxima ? lectura.proxima.nombre : 'Llegaste al destino'}</span>
+              <span className="mono objetivo__dato">{lectura.proxima ? formatearDistancia(lectura.proxima.faltaM) : '—'}</span>
+            </div>
+            <div className="objetivo__fila"><span>Hasta {destino?.nombre ?? 'el final'}</span><span className="mono objetivo__dato">{formatearDistancia(lectura.restante)}</span></div>
             <div className="objetivo__fila"><span>Recorrido</span><span className="mono objetivo__dato">{formatearDistancia(lectura.recorrido)}</span></div>
-          </section>
+          </Tarjeta>
           <PanelOxigeno monitoreo={monitoreo} error={errorMonitoreo} />
           <PanelViaje metricas={metricasViaje} error={errorMetricas} salida={lectura.salida} salidas={lectura.salidas} />
           {rutasSalidas && <LeyendaSalidas cantidad={rutasSalidas.length} className="leyenda-salidas--hud" />}
@@ -121,14 +129,6 @@ export function Monitoreo({ viaje, onSalir }) {
           Imágenes: NASA Mars Trek (CTX: NASA/JPL-Caltech/MSSS · HiRISE: NASA/JPL-Caltech/Univ. of Arizona), coloreadas para el diseño.
         </p>
 
-        <section className="panel proxima" aria-label="Próxima parada" aria-live="polite">
-          <span className="etiqueta">Próxima parada</span>
-          <span className="objetivo__nombre">{lectura.proxima ? lectura.proxima.nombre : 'Llegaste al destino'}</span>
-          <div className="objetivo__fila">
-            <span>Falta</span>
-            <span className="mono objetivo__dato">{lectura.proxima ? formatearDistancia(lectura.proxima.faltaM) : '—'}</span>
-          </div>
-        </section>
       </div>
     </div>
   )

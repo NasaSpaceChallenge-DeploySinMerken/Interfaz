@@ -273,6 +273,16 @@ const latido = setInterval(() => {
 const servidor = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost')
 
+  // CORS: permite que npm run dev (en otro origen, como http://localhost:5173)
+  // use este servidor publicado para llegar a los backends privados.
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204)
+    return res.end()
+  }
+
   try {
     if (pathname === '/salud') {
       return enviarJson(res, 200, {

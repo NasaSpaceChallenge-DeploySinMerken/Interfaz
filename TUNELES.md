@@ -1,3 +1,5 @@
+> **Ya no se usa:** el despliegue actual es Google Cloud ([martian-map.page](https://martian-map.page)), donde la interfaz y los backends ya tienen `https`. Se deja como referencia.
+
 # Backends por https con túneles de Cloudflare
 
 **Para:** Marti (backend 1, API del mapa) y Javier (backend 2, análisis).

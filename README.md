@@ -6,6 +6,8 @@ Interfaz del navegador del proyecto [martian-map](https://github.com/NasaSpaceCh
 - Contrato con el backend: [Contrato_API.md](Contrato_API.md)
 - Propuesta para el resto del equipo: [Propuesta_equipo.md](Propuesta_equipo.md)
 
+**Demo publicada: [https://martian-map.page](https://martian-map.page)** (Google Cloud, con los backends reales). El teléfono se conecta abriendo `https://martian-map.page/#control` (la demo muestra la dirección exacta con su código). El botón ⛶ pone la demo en pantalla completa para la presentación.
+
 ## Cómo correrlo
 
 ```bash
@@ -63,12 +65,12 @@ Todo se configura en `.env.local` (no se sube a git). Sin ninguna variable, todo
 | `VITE_ANALISIS_URL` | **Backend 2**: servicio de análisis de Javier (**en desarrollo**) | **Métricas durante el viaje**: lo que falta desde la posición actual (distancia, tiempo, oxígeno, pendientes y peligros). |
 | `VITE_MONITOREO_URL` | **Monitoreo en tiempo real** (Ingrid, en el servicio de análisis: misma dirección que el backend 2) | Recibe la posición cada segundo y devuelve el oxígeno, el costo de volver y las alertas. |
 
-Ejemplo de `.env.local` con los dos backends que ya existen:
+**Para desarrollar con los datos reales**, `.env.local` apunta al servidor publicado de la interfaz, que reenvía a los backends privados de Google Cloud (los backends no se pueden llamar directo desde tu computador):
 
 ```
-VITE_API_URL=http://localhost:3000
-VITE_ANALISIS_URL=http://52.6.216.161:8000
-VITE_MONITOREO_URL=http://52.6.216.161:8000
+VITE_API_URL=https://martian-map.page
+VITE_ANALISIS_URL=https://martian-map.page/analisis
+VITE_MONITOREO_URL=https://martian-map.page/monitoreo
 ```
 
 ### Publicar con el servidor propio de la interfaz (recomendado)
@@ -77,10 +79,10 @@ La interfaz tiene su propio servidor ([servidor/](servidor/README.md)): sirve la
 
 ```bash
 npm run build:servidor
-BACKEND_1_URL=http://52.0.36.196:3000 BACKEND_2_URL=http://52.6.216.161:8000 npm start   # http://localhost:8080
+BACKEND_1_URL=… BACKEND_2_URL=… BACKEND_MONITOREO_URL=… npm start   # http://localhost:8080
 ```
 
-Guía para desplegarlo en AWS como servicio: [servidor/README.md](servidor/README.md).
+Hoy está desplegado en Google Cloud (sección siguiente). Para desplegarlo en otra máquina (por ejemplo, AWS): [servidor/README.md](servidor/README.md).
 
 ### Despliegue automático en Google Cloud
 
@@ -93,7 +95,9 @@ con Workload Identity Federation, restringida al ID de este repo y a `main`.
 No hay claves GCP en GitHub. Los workflows anteriores de AWS y GitHub Pages
 siguen disponibles para ejecución manual.
 
-### Publicar con los backends reales (GitHub Pages + túneles de Cloudflare)
+### Anterior: GitHub Pages + túneles de Cloudflare (ya no se usa)
+
+> Este camino quedó reemplazado por el despliegue en Google Cloud (martian-map.page). Se deja por si hiciera falta volver a GitHub Pages; su workflow ahora solo corre a mano.
 
 La página publicada (`https://nasaspacechallenge-deploysinmerken.github.io/Interfaz/`) es `https`, así que **solo puede usar backends `https`**: el navegador bloquea las llamadas a `http://IP:puerto`. Los backends se exponen por `https` con túneles de Cloudflare.
 
@@ -171,7 +175,7 @@ En la rama `feat/mapa-layers` de martian-map, el backend 1 tiene `POST /api/plan
 ```bash
 # en martian-map
 git checkout feat/mapa-layers
-ANALYSIS_URL=http://52.6.216.161:8000 npm run api   # http://localhost:3000
+ANALYSIS_URL=http://<servicio-de-análisis>:8000 npm run api   # http://localhost:3000
 ```
 
 Con eso, "Calcular ruta" muestra:
@@ -187,7 +191,7 @@ Si el backend 1 no tiene `/api/plan` (por ejemplo, la rama `mapa-nacho-marti`) o
 
 ### Con el servicio de análisis: métricas durante el viaje (en desarrollo)
 
-El backend 2 es el servicio de Javier, en Python (rama `feat/javier/analisis` de martian-map, `analysis/server.py`; contrato en su `README.md`). Está publicado en `http://52.6.216.161:8000`, ya con el DEM de Gale.
+El backend 2 es el servicio de Javier, en Python (rama `feat/javier/analisis` de martian-map, `analysis/server.py`; contrato en su `README.md`). Hoy corre en una VM privada de Google Cloud con el DEM de Gale; la interfaz llega a él a través de su servidor (`/analisis` y `/monitoreo`).
 
 Durante la caminata, la interfaz le manda la **posición actual y las paradas que faltan, en orden**, a `POST /gale/analyze`. Lo pide al empezar y después cada vez que el astronauta se mueve más de 15 m o cambia de parada, nunca dos pedidos a la vez. Con los tramos de ida que devuelve, el HUD muestra el panel **"Lo que falta · backend 2"**:
 

@@ -21,6 +21,7 @@ import { MapaPlanificacion } from './MapaPlanificacion'
 import { abrirCanal } from '../control/canal'
 import { CODIGO_SESION } from '../control/sesion'
 import { AvisoEsTelefono, EnlaceTelefono } from '../control/EnlaceTelefono'
+import { BotonPantallaCompleta } from '../mapa/BotonPantallaCompleta'
 
 const ESPERA_TELEFONO_MS = 3000
 
@@ -215,6 +216,7 @@ export function Planificacion({ onComenzar }) {
     <div className="planificacion">
       <aside className="panel-lateral" aria-label="Preparar el viaje">
         <header className="cabecera">
+          <BotonPantallaCompleta />
           <p className="cabecera__marca">MARTIAN MAP</p>
           <h1 className="cabecera__titulo">Preparar el viaje</h1>
           <p className="cabecera__lugar">Cráter Gale · 137.30–137.60° E, 4.50–4.75° S</p>

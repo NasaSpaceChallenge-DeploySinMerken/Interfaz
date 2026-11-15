@@ -1,5 +1,7 @@
 // Panel de la misión: tiempo, modo de control y controles de la simulación.
 
+import { BotonPantallaCompleta } from '../mapa/BotonPantallaCompleta'
+
 const VELOCIDADES = [1, 10, 60]
 
 function formatearTiempo(segundos) {
@@ -12,11 +14,14 @@ function formatearTiempo(segundos) {
 export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, codigoSesion, acciones, onSalir }) {
   return (
     <section className="panel mision" aria-label="Misión">
-      <div>
-        <h1 className="mision__titulo">MARTIAN MAP</h1>
-        <p className="mision__lugar">Cráter Gale · Caminata en curso</p>
+      <div className="mision__cabecera">
+        <div>
+          <h1 className="mision__titulo">MARTIAN MAP</h1>
+          <p className="mision__lugar">Cráter Gale · Caminata en curso</p>
+        </div>
+        <BotonPantallaCompleta />
       </div>
-      <div>
+      <div className="mision__tiempo">
         <div className="etiqueta">Tiempo de misión</div>
         <div className="mision__reloj mono">{formatearTiempo(t)}</div>
       </div>
@@ -24,7 +29,7 @@ export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, cod
       <div className="mision__grupo">
         <span className="etiqueta" id="etiqueta-control">Control</span>
         <div className="segmentado" role="group" aria-labelledby="etiqueta-control">
-          <button type="button" aria-pressed={modo === 'auto'} onClick={() => acciones.cambiarModo('auto')}>Ruta automática</button>
+          <button type="button" aria-pressed={modo === 'auto'} onClick={() => acciones.cambiarModo('auto')}><span className="solo-grande">Ruta automática</span><span className="solo-telefono">Automática</span></button>
           <button type="button" aria-pressed={modo === 'manual'} onClick={() => acciones.cambiarModo('manual')}>Manual</button>
         </div>
         <div className="mision__remoto-fila">
@@ -60,7 +65,8 @@ export function BarraSuperior({ t, enMarcha, velocidad, modo, controlRemoto, cod
           ))}
         </div>
       </div>
-      <button type="button" className="boton--texto mision__salir" onClick={onSalir}>← Planificar otro viaje</button>
+      <span className="mision__salto" aria-hidden="true" />
+      <button type="button" className="boton--texto mision__salir" onClick={onSalir}><span className="solo-grande">← Planificar otro viaje</span><span className="solo-telefono">← Planificar</span></button>
     </section>
   )
 }
